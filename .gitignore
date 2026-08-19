@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.Python
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# JARVIS runtime artifacts
+logs/
+face.png
+jarvis.ico
+jarvis_32x32.png
+hand_landmarker.task
+plugins/__pycache__/
+memory/*.json.lock
+config/*.db
+
+# Config (contains secrets)
+config/api_keys.json
+config/api_keys.enc
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+

@@ -1,0 +1,26 @@
+# Optional "god-level" dependencies for Jarvis.
+# Core app stays dependency-light; install these to unlock the listed features:
+#
+#   chromadb        -> semantic vector memory (core/vector_memory.py)
+#   pvporcupine     -> offline wake-word engine (core/vad.py)
+#   gradio          -> cross-device Web UI (web/app.py)
+#   pytesseract     -> OCR for computer-use / vision 2.0 (needs Tesseract binary)
+#   easyocr         -> alternative OCR backend
+#   langgraph       -> advanced multi-agent graphs (core/multi_agent.py hook point)
+#   autogen-agentchat -> Microsoft AutoGen multi-agent (optional)
+#   watchdog        -> filesystem watching for plugin hot-reload (polling fallback exists)
+#   torch           -> Silero VAD model (energy fallback exists without it)
+#   sentence-transformers -> richer offline embeddings (bag-of-ngrams fallback exists)
+#
+# Install:  pip install -r requirements-god.txt
+
+chromadb>=0.4.0
+pvporcupine>=3.0.0
+gradio>=4.0.0
+pytesseract>=0.3.10
+easyocr>=1.7.0
+langgraph>=0.0.40
+autogen-agentchat>=0.2.0
+watchdog>=3.0.0
+torch>=2.0.0
+sentence-transformers>=2.4.0

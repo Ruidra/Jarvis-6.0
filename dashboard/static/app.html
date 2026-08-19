@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS — AI Control</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322d3ee'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%23070b14'/%3E%3Ctext x='32' y='44' font-family='Arial,sans-serif' font-size='38' font-weight='bold' fill='url(%23g)' text-anchor='middle'%3EJ%3C/text%3E%3C/svg%3E">
+  <script src="/static/crypto.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #05070d;
+      --bg-2:      #0a0f1c;
+      --surface:   rgba(255,255,255,0.045);
+      --surface-2: rgba(255,255,255,0.07);
+      --border:    rgba(255,255,255,0.09);
+      --accent:    #22d3ee;
+      --accent-2:  #6366f1;
+      --accent-grad: linear-gradient(135deg, #22d3ee 0%, #6366f1 100%);
+      --text:      #e8eef7;
+      --muted:     #6b7891;
+      --green:     #34d399;
+      --red:       #fb7185;
+      --shadow:    0 18px 50px rgba(0,0,0,0.55);
+      --radius:    16px;
+      font-synthesis: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    html, body {
+      height: 100%; background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    /* aurora background glow */
+    body::before {
+      content: ""; position: fixed; inset: -20%; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(40% 40% at 15% 10%, rgba(34,211,238,0.18), transparent 60%),
+        radial-gradient(45% 45% at 85% 20%, rgba(99,102,241,0.16), transparent 60%),
+        radial-gradient(50% 50% at 50% 100%, rgba(34,211,238,0.10), transparent 60%);
+      filter: blur(20px);
+      animation: drift 18s ease-in-out infinite alternate;
+    }
+    @keyframes drift { from { transform: translate3d(-2%, -1%, 0) scale(1); } to { transform: translate3d(2%, 2%, 0) scale(1.05); } }
+
+    header, main, footer { position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    header {
+      flex-shrink: 0; display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      background: rgba(8,11,20,0.72); backdrop-filter: blur(14px);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 17px; font-weight: 800; letter-spacing: 7px;
+    }
+    .logo span {
+      background: var(--accent-grad); -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .logo em { font-style: normal; -webkit-text-fill-color: var(--text); color: var(--text); }
+    .pill {
+      display: flex; align-items: center; gap: 7px; padding: 5px 13px;
+      border-radius: 99px; background: var(--surface); border: 1px solid var(--border);
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--muted); transition: all 0.35s;
+    }
+    .pill.on { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.35); color: var(--green); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
+    .pill.on .dot { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+    .spacer { flex: 1; }
+    .enc-badge { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; padding: 4px 9px; border-radius: 6px; display: none; }
+    .enc-badge.on  { display: block; background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.3); color: var(--green); }
+    .enc-badge.off { display: block; background: rgba(251,113,133,0.1); border: 1px solid rgba(251,113,133,0.25); color: var(--red); }
+    .url { font-size: 10px; font-family: 'SF Mono', ui-monospace, monospace; color: var(--muted); padding: 5px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+
+    /* ── FEED ── */
+    main { flex: 1; overflow-y: auto; padding: 18px 18px 10px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+    main::-webkit-scrollbar { width: 6px; }
+    main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 6px; }
+    main::-webkit-scrollbar-track { background: transparent; }
+    .msg { max-width: 100%; padding: 12px 16px; border-radius: var(--radius); font-size: 14.5px; line-height: 1.6; box-shadow: var(--shadow); }
+    @keyframes pop { from { opacity:0; transform:translateY(8px) scale(.98); } }
+    .msg-j {
+      align-self: flex-start;
+      background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(99,102,241,0.10));
+      border: 1px solid rgba(34,211,238,0.22); border-bottom-left-radius: 5px;
+    }
+    .msg-u {
+      align-self: flex-end;
+      background: var(--surface-2); border: 1px solid var(--border); border-bottom-right-radius: 5px;
+    }
+    .msg-sys { align-self:center; font-size:11px; color:var(--muted); padding:2px 0; background:transparent; border:none; letter-spacing:0.4px; box-shadow:none; }
+    .lbl { font-size:9px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; opacity:0.5; margin-bottom:5px; }
+    .msg-j .lbl { color: var(--accent); }
+    .msg-u .lbl { color: var(--muted); text-align:right; }
+
+    /* ── FILE CARD ── */
+    .msg-file {
+      align-self: flex-end; background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius); border-bottom-right-radius: 5px; padding: 12px 16px;
+      display: flex; align-items: center; gap: 13px; max-width: 82%; animation: pop 0.22s ease; box-shadow: var(--shadow);
+    }
+    .fc-icon { font-size: 28px; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+    .fc-meta { flex: 1; min-width: 0; }
+    .fc-lbl  { font-size:9px; font-weight:800; letter-spacing:2px; text-transform:uppercase; opacity:0.5; color:var(--muted); margin-bottom:5px; }
+    .fc-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fc-size { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .fc-bar-wrap { height: 4px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+    .fc-bar { height: 100%; width: 0%; background: var(--accent-grad); border-radius: 3px; transition: width 0.12s linear; }
+    .fc-status { font-size: 10px; font-weight: 800; letter-spacing: 1px; flex-shrink: 0; color: var(--muted); }
+    .fc-status.done { color: var(--green); }
+    .fc-status.err  { color: var(--red); }
+    .fc-dl { display:block; margin-top:7px; font-size:11px; color:var(--accent); text-decoration:none; font-weight:700; }
+    .fc-dl:hover { opacity: 0.8; }
+
+    /* ── FOOTER ── */
+    footer {
+      flex-shrink:0; padding:12px 16px; gap:9px; align-items:center; display:flex;
+      border-top:1px solid var(--border); background: rgba(8,11,20,0.72); backdrop-filter: blur(14px);
+    }
+    #inp {
+      flex:1; padding:13px 16px; background: var(--surface); border:1.5px solid var(--border);
+      border-radius:14px; color:var(--text); font-size:14.5px; outline:none; transition:border-color .15s, box-shadow .15s;
+    }
+    #inp:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(34,211,238,0.12); }
+    #inp::placeholder { color: var(--muted); }
+    .btn {
+      padding:12px 17px; border:none; border-radius:13px; font-size:11px; font-weight:800; letter-spacing:1.5px;
+      cursor:pointer; transition:opacity .15s, transform .1s; text-transform: uppercase;
+    }
+    .btn:active { transform: scale(0.96); }
+    .btn:hover  { opacity: 0.85; }
+    .btn-send { background: var(--accent-grad); color: #04121a; box-shadow: 0 6px 18px rgba(34,211,238,0.30); }
+    .btn-wake { background:var(--surface); border:1px solid var(--border); color:var(--muted); display:none; }
+    .btn-wake.show { display:block; color:var(--green); border-color:rgba(52,211,153,0.4); box-shadow:0 0 14px rgba(52,211,153,0.18); }
+    .round {
+      width:46px; height:46px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      border-radius:14px; font-size:18px; line-height:1; cursor:pointer;
+      background: var(--surface); border:1px solid var(--border); color:var(--muted);
+      transition:opacity .15s, transform .1s, border-color .2s, color .2s, background .2s;
+    }
+    .round:hover  { opacity:0.85; border-color: var(--accent); color: var(--accent); }
+    .round:active { transform: scale(0.94); }
+    .btn-attach { }
+    #mic-btn.recording {
+      background: rgba(251,113,133,0.16); border-color: rgba(251,113,133,0.5); color: var(--red);
+      animation: mic-pulse 1s ease-in-out infinite;
+    }
+    #mic-btn.unsupported { opacity: 0.3; cursor: not-allowed; }
+    @keyframes mic-pulse { 0%,100%{opacity:1;transform:scale(1); box-shadow:0 0 0 0 rgba(251,113,133,.4)} 50%{opacity:.7;transform:scale(.97); box-shadow:0 0 0 8px rgba(251,113,133,0)} }
+
+    /* ── TOAST ── */
+    #toast {
+      position:fixed; top:74px; left:50%; transform:translateX(-50%) translateY(-8px);
+      background:rgba(52,211,153,0.16); border:1px solid rgba(52,211,153,0.45);
+      color:var(--green); font-size:12px; font-weight:800; letter-spacing:1px;
+      padding:8px 20px; border-radius:99px; z-index:5;
+      opacity:0; transition:opacity 0.22s,transform 0.22s; pointer-events:none; white-space:nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* ══ THEME VARIANTS (light / dark / neon) ══════════════════════════════ */
+    /* neon = default (defined in :root above). dark = deeper matte. light = day mode. */
+    [data-theme="dark"] {
+      --bg:        #070b14;
+      --bg-2:      #0c1220;
+      --surface:   rgba(255,255,255,0.055);
+      --surface-2: rgba(255,255,255,0.085);
+      --border:    rgba(255,255,255,0.12);
+      --accent:    #38bdf8;
+      --accent-2:  #818cf8;
+      --accent-grad: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      --text:      #eef3fb;
+      --muted:     #7c8aa3;
+      --green:     #34d399;
+      --red:       #fb7185;
+    }
+    [data-theme="light"] {
+      --bg:        #e9eef6;
+      --bg-2:      #ffffff;
+      --surface:   rgba(15,23,42,0.05);
+      --surface-2: rgba(15,23,42,0.07);
+      --border:    rgba(15,23,42,0.14);
+      --accent:    #0ea5b7;
+      --accent-2:  #4f46e5;
+      --accent-grad: linear-gradient(135deg, #0ea5b7 0%, #4f46e5 100%);
+      --text:      #0f172a;
+      --muted:     #64748b;
+      --green:     #059669;
+      --red:       #e11d48;
+      --shadow:    0 18px 50px rgba(15,23,42,0.18);
+    }
+    [data-theme="light"] body::before { opacity: 0.55; }
+    [data-theme="light"] header,
+    [data-theme="light"] footer { background: rgba(255,255,255,0.78); }
+    [data-theme="light"] .msg-j {
+      background: linear-gradient(135deg, rgba(14,165,183,0.12), rgba(79,70,229,0.12));
+      border-color: rgba(14,165,183,0.30);
+    }
+    [data-theme="light"] .msg-u { background: var(--surface-2); }
+
+    /* ══ AVATARS ═════════════════════════════════════════════════════════ */
+    .msg-row { display: flex; gap: 10px; align-items: flex-end; max-width: 88%; animation: pop 0.22s cubic-bezier(.2,.8,.2,1); }
+    .msg-row.j { align-self: flex-start; flex-direction: row; }
+    .msg-row.u { align-self: flex-end; flex-direction: row-reverse; }
+    .msg-row.sys { align-self: center; max-width: 92%; }
+    .avatar {
+      width: 32px; height: 32px; flex-shrink: 0; border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 14px; letter-spacing: 0.5px;
+      color: #04121a; background: var(--accent-grad);
+      box-shadow: 0 0 14px rgba(34,211,238,0.35);
+    }
+    .avatar.user {
+      color: var(--muted); background: var(--surface-2);
+      border: 1px solid var(--border); box-shadow: none; font-size: 16px;
+    }
+    .msg-bubble { min-width: 0; }
+
+    /* ══ TYPING INDICATOR ═════════════════════════════════════════════════ */
+    .typing .msg {
+      background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(99,102,241,0.10));
+      border: 1px solid rgba(34,211,238,0.22); border-bottom-left-radius: 5px;
+      display: flex; gap: 5px; padding: 16px 18px; align-items: center;
+    }
+    .typing .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+      opacity: 0.4; animation: type-bounce 1.2s infinite ease-in-out;
+    }
+    .typing .dot:nth-child(2) { animation-delay: 0.18s; }
+    .typing .dot:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes type-bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ══ SETTINGS + HEALTH PANELS (slide-in) ══════════════════════════════ */
+    .panel {
+      position: fixed; top: 0; right: 0; height: 100%; width: 300px; z-index: 6;
+      background: rgba(8,11,20,0.82); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-left: 1px solid var(--border); padding: 16px;
+      transform: translateX(110%); transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
+      display: flex; flex-direction: column; gap: 14px; overflow-y: auto; color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    [data-theme="light"] .panel { background: rgba(255,255,255,0.85); }
+    .panel.open { transform: translateX(0); }
+    .panel h3 { font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+    .panel .close-x {
+      position: absolute; top: 12px; right: 14px; cursor: pointer;
+      color: var(--muted); font-size: 18px; border: none; background: transparent;
+    }
+    .panel .close-x:hover { color: var(--accent); }
+    .theme-opt {
+      display: flex; align-items: center; gap: 12px; padding: 11px 13px; cursor: pointer;
+      border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+      transition: border-color .2s, background .2s; color: var(--text);
+    }
+    .theme-opt:hover { border-color: var(--accent); }
+    .theme-opt.active { border-color: var(--accent); background: rgba(34,211,238,0.10); }
+    .theme-swatch { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; }
+    .theme-name { font-size: 13px; font-weight: 700; }
+    .theme-desc { font-size: 10px; color: var(--muted); }
+
+    .metric-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 11px 13px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .metric-card .mc-lbl { font-size: 9px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+    .metric-card .mc-val { font-size: 18px; font-weight: 800; color: var(--text); font-family: 'SF Mono', ui-monospace, monospace; }
+    .metric-card .mc-bar { height: 4px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 2px; }
+    .metric-card .mc-fill { height: 100%; width: 0%; background: var(--accent-grad); transition: width .4s; }
+    .health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .health-status { font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+    .health-status .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .health-status.ok .dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .health-status.bad .dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+    /* header action buttons */
+    .hbtn {
+      width: 34px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; font-size: 15px; cursor: pointer; color: var(--muted);
+      background: var(--surface); border: 1px solid var(--border);
+      transition: opacity .15s, border-color .2s, color .2s;
+    }
+    .hbtn:hover { opacity: 0.85; border-color: var(--accent); color: var(--accent); }
+    .hbtn:active { transform: scale(0.94); }
+  </style>
+</head>
+<body>
+  <div id="toast"></div>
+  <header>
+    <div class="logo" aria-label="JARVIS">
+      <svg width="22" height="22" viewBox="0 0 64 64" style="filter:drop-shadow(0 0 6px rgba(34,211,238,.45))">
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#6366f1"/>
+        </linearGradient></defs>
+        <rect width="64" height="64" rx="14" fill="#070b14"/>
+        <text x="32" y="44" font-family="Arial,sans-serif" font-size="38" font-weight="bold" fill="url(#lg)" text-anchor="middle">J</text>
+      </svg>
+      <span><em>J</em>ARVIS</span>
+    </div>
+    <div class="pill" id="pill"><span class="dot"></span><span id="st">Connecting</span></div>
+    <div class="enc-badge" id="enc">AES-256</div>
+    <div class="spacer"></div>
+    <div class="url" id="url">__IP__:__PORT__</div>
+    <div class="hbtn" id="health-btn" title="System health" onclick="togglePanel('health')">❤</div>
+    <div class="hbtn" id="theme-btn" title="Settings &amp; theme" onclick="togglePanel('settings')">⚙</div>
+  </header>
+  <main id="feed"></main>
+  <footer>
+    <input id="inp" placeholder="Send a command to JARVIS…" autocomplete="off">
+    <label class="round btn-attach" for="file-inp" title="Send file">📎</label>
+    <input type="file" id="file-inp" multiple accept="*/*" style="display:none">
+    <button id="mic-btn" class="round" onclick="doMic()" title="Voice command">🎤</button>
+    <button class="btn btn-wake" id="wake" onclick="doWake()">WAKE</button>
+    <button class="btn btn-send" onclick="doSend()">SEND</button>
+  </footer>
+
+  <!-- ══ SETTINGS PANEL (theme switcher) ════════════════════════════════ -->
+  <aside class="panel" id="settings-panel">
+    <button class="close-x" onclick="togglePanel('settings')">✕</button>
+    <h3>Appearance</h3>
+    <div class="theme-opt" data-theme="neon" onclick="applyTheme('neon')">
+      <div class="theme-swatch" style="background:linear-gradient(135deg,#22d3ee,#6366f1)"></div>
+      <div><div class="theme-name">Neon</div><div class="theme-desc">Cyan / indigo glass</div></div>
+    </div>
+    <div class="theme-opt" data-theme="dark" onclick="applyTheme('dark')">
+      <div class="theme-swatch" style="background:linear-gradient(135deg,#38bdf8,#818cf8)"></div>
+      <div><div class="theme-name">Dark</div><div class="theme-desc">Deep matte night</div></div>
+    </div>
+    <div class="theme-opt" data-theme="light" onclick="applyTheme('light')">
+      <div class="theme-swatch" style="background:linear-gradient(135deg,#0ea5b7,#4f46e5)"></div>
+      <div><div class="theme-name">Light</div><div class="theme-desc">Day mode</div></div>
+    </div>
+    <h3 style="margin-top:6px">About</h3>
+    <div style="font-size:11px;color:var(--muted);line-height:1.7">
+      JARVIS AI Control — secure remote companion. End-to-end AES-256-CBC encrypted command channel.
+    </div>
+  </aside>
+
+  <!-- ══ HEALTH / STATUS PANEL ══════════════════════════════════════════ -->
+  <aside class="panel" id="health-panel">
+    <button class="close-x" onclick="togglePanel('health')">✕</button>
+    <h3>System Health</h3>
+    <div class="health-status ok" id="health-status"><span class="dot"></span><span id="health-label">Live</span></div>
+    <div class="health-grid">
+      <div class="metric-card"><div class="mc-lbl">Uptime</div><div class="mc-val" id="m-uptime">—</div></div>
+      <div class="metric-card"><div class="mc-lbl">Processes</div><div class="mc-val" id="m-proc">—</div></div>
+      <div class="metric-card"><div class="mc-lbl">Speech Events</div><div class="mc-val" id="m-speech">0</div></div>
+      <div class="metric-card"><div class="mc-lbl">Tool Calls</div><div class="mc-val" id="m-tools">0</div></div>
+      <div class="metric-card"><div class="mc-lbl">Errors</div><div class="mc-val" id="m-err">0</div></div>
+      <div class="metric-card"><div class="mc-lbl">Latency</div><div class="mc-val" id="m-lat">—</div></div>
+    </div>
+    <div id="m-gauges"></div>
+    <div style="font-size:10px;color:var(--muted);margin-top:auto" id="health-updated">—</div>
+  </aside>
+
+  <script>
+    // ── Auth — bearer token ───────────────────────────────────────────────────
+    const _authToken  = sessionStorage.getItem('jarvis_token');
+    const _sessionKey = sessionStorage.getItem('jarvis_key');
+
+    if (!_authToken) {
+      location.replace('/login');
+    }
+
+    function _authHeader() { return { 'Authorization': `Bearer ${_authToken}` }; }
+    function _authFetch(url, opts = {}) {
+      opts.headers = Object.assign({}, opts.headers, _authHeader());
+      return fetch(url, opts);
+    }
+
+    // ── AES-256-CBC encryption (CryptoJS) ────────────────────────────────────
+    const _AES_SALT = 'JARVIS-DASHBOARD-v1';
+    let _aesKey = null;
+
+    function _initCrypto(key) {
+      if (typeof CryptoJS === 'undefined') return false;
+      _aesKey = CryptoJS.SHA256(key + _AES_SALT);
+      return true;
+    }
+
+    function _encrypt(plaintext) {
+      if (!_aesKey || typeof CryptoJS === 'undefined') return null;
+      try {
+        const iv  = CryptoJS.lib.WordArray.random(16);
+        const enc = CryptoJS.AES.encrypt(
+          CryptoJS.enc.Utf8.parse(plaintext), _aesKey,
+          { iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }
+        );
+        const ivHex = iv.toString(CryptoJS.enc.Hex);
+        const ctHex = enc.ciphertext.toString(CryptoJS.enc.Hex);
+        const hex   = ivHex + ctHex;
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < bytes.length; i++)
+          bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+        return btoa(String.fromCharCode(...bytes));
+      } catch { return null; }
+    }
+
+    const _encReady = _sessionKey ? _initCrypto(_sessionKey) : false;
+    const encBadge  = document.getElementById('enc');
+    if (_encReady) { encBadge.className = 'enc-badge on'; }
+    else           { encBadge.className = 'enc-badge off'; encBadge.textContent = 'NO ENC'; }
+
+    // ── WebSocket ─────────────────────────────────────────────────────────────
+    const feed  = document.getElementById('feed');
+    const pill  = document.getElementById('pill');
+    const stTxt = document.getElementById('st');
+    const wake  = document.getElementById('wake');
+
+    const _wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const _wsUrl   = `${_wsProto}://${location.host}/ws?token=${encodeURIComponent(_authToken)}`;
+    const ws       = new WebSocket(_wsUrl);
+
+    ws.onopen    = () => { sys('Remote session active.'); toast('Connected to JARVIS'); };
+    ws.onclose   = () => sys('Connection lost — refresh to reconnect.');
+    ws.onerror   = () => sys('Connection error.');
+    ws.onmessage = (e) => {
+      const m = JSON.parse(e.data);
+      if (m.type === 'log')           { hideTyping(); append(m.speaker, m.text); }
+      if (m.type === 'status')        setStatus(m.state);
+      if (m.type === 'typing')        setTyping(!!m.on);
+      if (m.type === 'wake')          sys('Wake word detected — connecting…');
+      if (m.type === 'sys')           { hideTyping(); sys(m.text); }
+      if (m.type === 'file_received') _onFileReceived(m);
+    };
+
+    function setStatus(s) {
+      if (s === 'active') {
+        pill.className = 'pill on'; stTxt.textContent = 'Active'; wake.classList.remove('show');
+      } else {
+        pill.className = 'pill'; stTxt.textContent = 'Sleeping'; wake.classList.add('show');
+      }
+    }
+
+    function append(speaker, text) {
+      const isJarvis = speaker === 'jarvis';
+      const row = document.createElement('div');
+      row.className = 'msg-row ' + (isJarvis ? 'j' : 'u');
+
+      const av = document.createElement('div');
+      av.className = 'avatar' + (isJarvis ? '' : ' user');
+      av.textContent = isJarvis ? 'J' : '🙂';
+
+      const bub = document.createElement('div');
+      bub.className = 'msg ' + (isJarvis ? 'msg-j' : 'msg-u');
+      bub.innerHTML = `<div class="lbl">${isJarvis ? 'Jarvis' : 'You'}</div>${esc(text)}`;
+
+      row.appendChild(av);
+      row.appendChild(bub);
+      feed.appendChild(row);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    // ── Typing indicator ───────────────────────────────────────────────────
+    let _typingEl = null;
+    function setTyping(on) {
+      if (on && !_typingEl) {
+        const row = document.createElement('div');
+        row.className = 'msg-row j typing';
+        row.innerHTML =
+          '<div class="avatar">J</div>' +
+          '<div class="msg"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+        feed.appendChild(row);
+        feed.scrollTop = feed.scrollHeight;
+        _typingEl = row;
+      } else if (!on && _typingEl) {
+        _typingEl.remove();
+        _typingEl = null;
+      }
+    }
+    function hideTyping() { setTyping(false); }
+
+    function sys(text) {
+      const d = document.createElement('div');
+      d.className = 'msg msg-sys'; d.textContent = text;
+      feed.appendChild(d); feed.scrollTop = feed.scrollHeight;
+    }
+
+    function esc(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── File helpers ──────────────────────────────────────────────────────────
+    function _fileIcon(name) {
+      const ext = (name.split('.').pop() || '').toLowerCase();
+      if (['jpg','jpeg','png','gif','webp','heic','heif','avif','bmp','svg'].includes(ext)) return '🖼️';
+      if (['mp4','mov','avi','mkv','webm','m4v','3gp'].includes(ext))                       return '🎬';
+      if (['mp3','m4a','wav','flac','aac','ogg','opus'].includes(ext))                      return '🎵';
+      if (['pdf'].includes(ext))                                                             return '📋';
+      if (['doc','docx','txt','md','rtf','odt'].includes(ext))                              return '📝';
+      if (['xls','xlsx','csv','ods'].includes(ext))                                         return '📊';
+      if (['ppt','pptx','odp'].includes(ext))                                               return '📑';
+      if (['zip','rar','7z','tar','gz','bz2','xz'].includes(ext))                          return '📦';
+      if (['apk','exe','dmg','deb','rpm','msi'].includes(ext))                              return '⚙️';
+      return '📎';
+    }
+
+    function _fmtSize(bytes) {
+      if (bytes < 1024)             return bytes + ' B';
+      if (bytes < 1024 * 1024)     return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1024 ** 3)       return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+      return (bytes / 1024 ** 3).toFixed(2) + ' GB';
+    }
+
+    // ── File upload (phone → computer) ────────────────────────────────────────
+    function _uploadFile(file) {
+      const id = 'fc_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+
+      // Create file card in feed
+      const card = document.createElement('div');
+      card.className = 'msg-file';
+      card.id = id;
+      card.innerHTML = `
+        <div class="fc-icon">${_fileIcon(file.name)}</div>
+        <div class="fc-meta">
+          <div class="fc-lbl">Sending</div>
+          <div class="fc-name">${esc(file.name)}</div>
+          <div class="fc-size">${_fmtSize(file.size)}</div>
+          <div class="fc-bar-wrap"><div class="fc-bar" id="${id}_bar"></div></div>
+        </div>
+        <div class="fc-status" id="${id}_st">0%</div>
+      `;
+      feed.appendChild(card);
+      feed.scrollTop = feed.scrollHeight;
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload');
+      xhr.setRequestHeader('Authorization', `Bearer ${_authToken}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+        const pct = Math.round(e.loaded / e.total * 100);
+        const bar = document.getElementById(`${id}_bar`);
+        const st  = document.getElementById(`${id}_st`);
+        if (bar) bar.style.width = pct + '%';
+        if (st)  st.textContent  = pct + '%';
+      };
+
+      xhr.onload = () => {
+        const bar  = document.getElementById(`${id}_bar`);
+        const st   = document.getElementById(`${id}_st`);
+        const meta = card.querySelector('.fc-meta');
+        const lbl  = card.querySelector('.fc-lbl');
+        if (xhr.status === 200) {
+          let savedName = file.name;
+          try { savedName = JSON.parse(xhr.responseText).name || file.name; } catch {}
+          const dlUrl = `/uploads/${encodeURIComponent(savedName)}?token=${encodeURIComponent(_authToken)}`;
+          if (bar)  { bar.style.width = '100%'; bar.style.background = 'var(--green)'; }
+          if (st)   { st.textContent = '✓'; st.className = 'fc-status done'; }
+          if (lbl)  lbl.textContent = 'Sent';
+          if (meta) meta.insertAdjacentHTML('beforeend',
+            `<a class="fc-dl" href="${dlUrl}" download="${esc(savedName)}">⬇ Download back</a>`);
+          toast('File sent!');
+        } else {
+          let errMsg = 'Upload failed';
+          try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch {}
+          if (bar) bar.style.background = '#f87171';
+          if (st)  { st.textContent = 'ERR'; st.className = 'fc-status err'; }
+          if (lbl) lbl.textContent = errMsg;
+        }
+      };
+
+      xhr.onerror = () => {
+        const st  = document.getElementById(`${id}_st`);
+        const lbl = card.querySelector('.fc-lbl');
+        if (st)  { st.textContent = 'ERR'; st.className = 'fc-status err'; }
+        if (lbl) lbl.textContent = 'Connection error';
+      };
+
+      const fd = new FormData();
+      fd.append('file', file);
+      xhr.send(fd);
+    }
+
+    // File received by another WebSocket client (e.g., second open tab)
+    function _onFileReceived(m) {
+      const dlUrl = `/uploads/${encodeURIComponent(m.name)}?token=${encodeURIComponent(_authToken)}`;
+      const card  = document.createElement('div');
+      card.className = 'msg-file';
+      card.innerHTML = `
+        <div class="fc-icon">${_fileIcon(m.name)}</div>
+        <div class="fc-meta">
+          <div class="fc-lbl">Received</div>
+          <div class="fc-name">${esc(m.name)}</div>
+          <div class="fc-size">${_fmtSize(m.size)}</div>
+          <a class="fc-dl" href="${dlUrl}" download="${esc(m.name)}">⬇ Download</a>
+        </div>
+        <div class="fc-status done">✓</div>
+      `;
+      feed.appendChild(card);
+      feed.scrollTop = feed.scrollHeight;
+      toast('File received on computer!');
+    }
+
+    // File input change handler
+    document.getElementById('file-inp').addEventListener('change', function () {
+      Array.from(this.files).forEach(_uploadFile);
+      this.value = ''; // reset so the same file can be re-sent
+    });
+
+    // ── Commands ──────────────────────────────────────────────────────────────
+    function doSend() {
+      const inp = document.getElementById('inp');
+      const txt = inp.value.trim();
+      if (!txt) return;
+      inp.value = '';
+      append('user', txt);
+      setTyping(true);
+      const enc  = _encrypt(txt);
+      const body = enc ? { enc } : { text: txt };
+      _authFetch('/api/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    }
+
+    function doWake() {
+      sys('Sending wake signal…');
+      _authFetch('/api/wake', { method: 'POST' });
+    }
+
+    document.getElementById('inp').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
+    });
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    let _toastTimer;
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // ── Real-time Voice — PCM16 WebSocket → Gemini Live ──────────────────────
+    const micBtn  = document.getElementById('mic-btn');
+    let _voiceWs  = null;
+    let _audioCtx = null;
+    let _micStm   = null;
+    let _audioNd  = null;
+
+    function _micIdle() {
+      micBtn.innerHTML = '🎤';
+      micBtn.title     = 'Voice — tap to speak';
+      micBtn.classList.remove('recording');
+    }
+
+    // Float32 PCM → resample to 16 kHz + convert to Int16
+    function _f32toPcm16(f32, srcRate) {
+      let s = f32;
+      if (srcRate !== 16000) {
+        const ratio = srcRate / 16000;
+        const len   = Math.round(f32.length / ratio);
+        s = new Float32Array(len);
+        for (let i = 0; i < len; i++)
+          s[i] = f32[Math.min(Math.round(i * ratio), f32.length - 1)];
+      }
+      const out = new Int16Array(s.length);
+      for (let i = 0; i < s.length; i++)
+        out[i] = Math.max(-32768, Math.min(32767, Math.round(s[i] * 32768)));
+      return out.buffer;
+    }
+
+    function _showVoiceSetup() {
+      if (document.getElementById('voice-setup')) return; // show once
+      const origin = location.origin;
+      const card = document.createElement('div');
+      card.id = 'voice-setup';
+      card.style.cssText = [
+        'align-self:stretch', 'background:rgba(34,211,238,0.07)',
+        'border:1px solid rgba(34,211,238,0.22)', 'border-radius:14px',
+        'padding:16px 18px', 'font-size:13px', 'line-height:1.8',
+        'animation:pop 0.18s ease'
+      ].join(';');
+      card.innerHTML =
+        '<div style="font-weight:700;color:#67e8f9;letter-spacing:.5px;margin-bottom:10px">🎤 One-time voice setup</div>' +
+        '<ol style="padding-left:18px;color:#8899aa;margin:0;display:flex;flex-direction:column;gap:4px">' +
+        '<li>Open a new tab → go to <span style="background:rgba(255,255,255,0.07);padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12px">chrome://flags</span></li>' +
+        '<li>Search: <strong style="color:#dde3ed">Insecure origins treated as secure</strong></li>' +
+        '<li>Paste this URL into the box:<br><span id="flags-url" style="background:rgba(255,255,255,0.07);padding:2px 8px;border-radius:4px;font-family:monospace;font-size:11px;user-select:all;cursor:pointer">' + esc(origin) + '</span></li>' +
+        '<li>Set to <strong style="color:#22c55e">Enabled</strong> → tap <strong style="color:#dde3ed">Relaunch</strong></li>' +
+        '<li>Return here and tap 🎤</li>' +
+        '</ol>';
+      feed.appendChild(card);
+      feed.scrollTop = feed.scrollHeight;
+      // tap to copy
+      card.querySelector('#flags-url').addEventListener('click', () => {
+        navigator.clipboard?.writeText(origin).then(() => toast('URL copied!')).catch(() => {});
+      });
+    }
+
+    async function doMic() {
+      if (_voiceWs) { _stopVoice(); return; }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        _showVoiceSetup();
+        return;
+      }
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+        });
+      } catch (e) {
+        sys(e.name === 'NotAllowedError'
+          ? 'Microphone denied — tap the address bar lock and allow microphone.'
+          : 'Mic error: ' + e.message);
+        return;
+      }
+
+      // 16 kHz context (fall back to native rate — _f32toPcm16 resamples)
+      let ctx;
+      try { ctx = new AudioContext({ sampleRate: 16000 }); }
+      catch (_) { ctx = new AudioContext(); }
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(
+        `${wsProto}://${location.host}/ws/phone-audio?token=${encodeURIComponent(_authToken)}`
+      );
+      ws.binaryType = 'arraybuffer';
+
+      ws.onopen = async () => {
+        const rate = ctx.sampleRate;
+        const src  = ctx.createMediaStreamSource(stream);
+
+        // AudioWorklet (modern) — runs in dedicated audio thread
+        const wCode = `class J extends AudioWorkletProcessor{process(i){const c=i[0]?.[0];if(c)this.port.postMessage(c.slice());return true;}}registerProcessor('j',J);`;
+        try {
+          const burl = URL.createObjectURL(new Blob([wCode], { type: 'application/javascript' }));
+          await ctx.audioWorklet.addModule(burl);
+          URL.revokeObjectURL(burl);
+          const nd = new AudioWorkletNode(ctx, 'j');
+          // Buffer to 1024 samples (64 ms at 16 kHz) before sending —
+          // matches PC mic chunk size, prevents queue flooding on the server.
+          let _pbuf = [], _plen = 0;
+          nd.port.onmessage = e => {
+            const chunk = new Int16Array(_f32toPcm16(e.data, rate));
+            _pbuf.push(chunk); _plen += chunk.length;
+            if (_plen >= 1024) {
+              const out = new Int16Array(_plen); let off = 0;
+              for (const c of _pbuf) { out.set(c, off); off += c.length; }
+              if (ws.readyState === 1) ws.send(out.buffer);
+              _pbuf = []; _plen = 0;
+            }
+          };
+          src.connect(nd);
+          _audioNd = nd;
+        } catch (_) {
+          // ScriptProcessor fallback (deprecated, still works everywhere)
+          const sp = ctx.createScriptProcessor(4096, 1, 1);
+          sp.onaudioprocess = e => {
+            if (ws.readyState === 1) ws.send(_f32toPcm16(e.inputBuffer.getChannelData(0), rate));
+          };
+          src.connect(sp); sp.connect(ctx.destination);
+          _audioNd = sp;
+        }
+
+        micBtn.innerHTML = '⏹';
+        micBtn.title     = 'Tap to stop';
+        micBtn.classList.add('recording');
+        sys('Voice live — speak now');
+        toast('🎤 Live');
+        setTyping(true);
+      };
+
+      ws.onclose = () => { _stopVoice(); };
+      ws.onerror = () => { sys('Voice connection failed.'); _stopVoice(); };
+
+      _voiceWs  = ws;
+      _audioCtx = ctx;
+      _micStm   = stream;
+    }
+
+    function _stopVoice() {
+      if (_audioNd)  { try { _audioNd.disconnect(); }  catch (_) {}; _audioNd  = null; }
+      if (_audioCtx) { try { _audioCtx.close(); }      catch (_) {}; _audioCtx = null; }
+      if (_micStm)   { _micStm.getTracks().forEach(t => t.stop()); _micStm = null; }
+      if (_voiceWs)  {
+        const w = _voiceWs; _voiceWs = null;
+        if (w.readyState < 2) w.close();
+      }
+      _micIdle();
+      hideTyping();
+    }
+
+    // ── Theme switcher (light / dark / neon) ──────────────────────────────────
+    const THEME_KEY = 'jarvis_theme';
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      localStorage.setItem(THEME_KEY, t);
+      document.querySelectorAll('.theme-opt').forEach(o =>
+        o.classList.toggle('active', o.dataset.theme === t));
+    }
+    (function initTheme() {
+      applyTheme(localStorage.getItem(THEME_KEY) || 'neon');
+    })();
+
+    // ── Slide-in panels ───────────────────────────────────────────────────────
+    function togglePanel(name) {
+      const p = document.getElementById(name + '-panel');
+      const other = document.getElementById((name === 'settings' ? 'health' : 'settings') + '-panel');
+      if (other) other.classList.remove('open');
+      p.classList.toggle('open');
+    }
+
+    // ── Health / status panel (polls /metrics) ───────────────────────────────
+    async function refreshHealth() {
+      try {
+        const r = await fetch('/metrics');
+        if (!r.ok) throw new Error('bad');
+        const m = await r.json();
+        const st = document.getElementById('health-status');
+        st.className = 'health-status ok';
+        document.getElementById('health-label').textContent = 'Live';
+
+        const up = m.uptime_s || 0;
+        const hh = Math.floor(up / 3600), mm = Math.floor((up % 3600) / 60);
+        document.getElementById('m-uptime').textContent = `${hh}h ${mm}m`;
+
+        const c = m.counters || {};
+        document.getElementById('m-speech').textContent = c.speech_events || 0;
+        document.getElementById('m-tools').textContent  = c.tool_calls  || 0;
+        document.getElementById('m-err').textContent    = c.errors      || 0;
+
+        const g = m.gauges || {};
+        document.getElementById('m-proc').textContent =
+          g.proc_count != null ? g.proc_count : '—';
+        document.getElementById('m-lat').textContent =
+          g.latency_ms != null ? Math.round(g.latency_ms) + 'ms' : '—';
+
+        const host = document.getElementById('m-gauges');
+        host.innerHTML = '';
+        const _skip = ['proc_count', 'latency_ms'];
+        for (const [k, v] of Object.entries(g)) {
+          if (_skip.includes(k)) continue;
+          const pct = Math.max(0, Math.min(100, Number(v) || 0));
+          const card = document.createElement('div');
+          card.className = 'metric-card';
+          card.innerHTML =
+            `<div class="mc-lbl">${esc(k)}</div>` +
+            `<div class="mc-val">${esc(String(v))}</div>` +
+            `<div class="mc-bar"><div class="mc-fill" style="width:${pct}%"></div></div>`;
+          host.appendChild(card);
+        }
+        document.getElementById('health-updated').textContent =
+          'Updated ' + new Date().toLocaleTimeString();
+      } catch (e) {
+        const st = document.getElementById('health-status');
+        st.className = 'health-status bad';
+        document.getElementById('health-label').textContent = 'No signal';
+      }
+    }
+    refreshHealth();
+    setInterval(refreshHealth, 3000);
+  </script>
+</body>
+</html>

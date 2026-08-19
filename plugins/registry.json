@@ -1,0 +1,145 @@
+{
+  "enabled": {
+    "calendar": true,
+    "email": true,
+    "hello": true,
+    "habit": true,
+    "quiz": false,
+    "plugin_manager": true,
+    "markets": true,
+    "translator": true,
+    "utils": true,
+    "wikipedia": true,
+    "briefing": true,
+    "teach": true
+  },
+  "installed": {
+    "calendar": {
+      "description": "Local personal calendar. Add, list, and delete events; show today's or upcoming schedule. Works fully offline (no external account needed). Use when the user mentions a calendar, schedule, event, appointment, meeting, 'add to my calendar', or 'what's on my calendar'.",
+      "triggers": [
+        "calendar",
+        "schedule",
+        "event",
+        "appointment",
+        "add event"
+      ]
+    },
+    "email": {
+      "description": "Send and read email via standard SMTP/IMAP using an app password (no OAuth). Use when the user says 'send an email', 'email X', 'read my email', 'check my inbox', or 'any unread mail'.",
+      "triggers": [
+        "send email",
+        "read email",
+        "check inbox",
+        "unread mail",
+        "my email"
+      ]
+    },
+    "hello": {
+      "description": "A friendly greeting skill used to showcase the plugin system.",
+      "triggers": [
+        "hello",
+        "hi",
+        "hey",
+        "ping"
+      ]
+    },
+    "habit": {
+      "description": "Personal habit & health tracker (offline). Log water, calories, workouts, mood, and sleep; get today's totals, streaks, and weekly summaries. Use for 'log water', 'track calories', 'I worked out', 'my habit summary'.",
+      "triggers": [
+        "log water",
+        "track calories",
+        "workout",
+        "habit",
+        "my habits"
+      ]
+    },
+    "quiz": {
+      "description": "Interactive quiz / study mode. Generates a short quiz on any topic using the local LLM, then grades the user's answers and tracks a running score. Use when the user says 'quiz me', 'test me on X', 'study mode', 'pop quiz', or asks to be tested / learn something through questions.",
+      "triggers": [
+        "quiz",
+        "test me",
+        "study mode",
+        "pop quiz",
+        "exam"
+      ]
+    },
+    "plugin_manager": {
+      "description": "Manage Jarvis plugins. List installed plugins, or enable/disable a specific plugin by name. Use when the user says 'list plugins', 'what plugins do you have', 'enable plugin X', or 'disable plugin X'.",
+      "triggers": [
+        "list plugins",
+        "enable plugin",
+        "disable plugin",
+        "manage plugin"
+      ]
+    },
+    "markets": {
+      "description": "Live cryptocurrency prices and conversions (Bitcoin, Ethereum, Solana, Dogecoin, etc.) via CoinGecko \u2014 no API key needed. Also forex rates. Use for 'what is the price of bitcoin', 'btc to usd', 'eth price'.",
+      "triggers": [
+        "price of",
+        "crypto",
+        "bitcoin",
+        "ethereum",
+        "btc",
+        "eth",
+        "convert",
+        "exchange rate"
+      ]
+    },
+    "translator": {
+      "description": "Translate text between languages. Use when the user says 'translate X to French', 'say that in Spanish', 'what is X in German', or wants any phrase converted to another language.",
+      "triggers": [
+        "translate",
+        "in french",
+        "in spanish",
+        "say that in",
+        "what is",
+        "language"
+      ]
+    },
+    "utils": {
+      "description": "Offline utilities: generate a strong password, evaluate a math expression, or convert units (km\u2194mi, kg\u2194lb, C\u2194F, and more). Use for 'generate a password', 'calculate (2+3)*4', 'convert 10 km to miles'.",
+      "triggers": [
+        "password",
+        "calculate",
+        "convert",
+        "how many",
+        "unit"
+      ]
+    },
+    "wikipedia": {
+      "description": "Fetch a concise encyclopedia summary from Wikipedia for any topic, person, or concept. Use for 'tell me about X', 'who is Y', 'what is Z', or general knowledge questions that aren't current events.",
+      "triggers": [
+        "tell me about",
+        "who is",
+        "what is",
+        "wikipedia",
+        "explain"
+      ]
+    },
+    "briefing": {
+      "description": "Autonomous daily/evening briefing. Pulls calendar, weather, markets, news, and habits into one concise spoken report. Use when the user says 'give me my briefing', 'morning brief', 'evening brief', or 'status report'.",
+      "triggers": [
+        "briefing",
+        "daily brief",
+        "morning brief",
+        "evening brief",
+        "my briefing",
+        "status report",
+        "my day"
+      ]
+    },
+    "teach": {
+      "description": "Teach JARVIS durable facts in plain English (no coding). Also answers 'what have you learned about me?'. Use for remembering preferences, people, projects, and notes.",
+      "triggers": [
+        "teach",
+        "remember that",
+        "learn that",
+        "note that",
+        "save that",
+        "what have you learned",
+        "what do you know about me",
+        "what do you remember"
+      ]
+    }
+  }
+}

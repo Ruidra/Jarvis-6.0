@@ -1,0 +1,15 @@
+{
+  "facts": [
+    {
+      "text": "User loves pizza",
+      "category": "preferences",
+      "confidence": 0.95,
+      "source": "explicit",
+      "created": "2026-08-19",
+      "updated": "2026-08-19"
+    }
+  ],
+  "corrections": [],
+  "habits": {},
+  "history": []
+}

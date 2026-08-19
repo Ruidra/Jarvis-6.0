@@ -1,0 +1,50 @@
+{
+  "facts": [
+    {
+      "text": "User loves pizza",
+      "category": "preferences",
+      "confidence": 0.95,
+      "source": "explicit",
+      "created": "2026-08-19",
+      "updated": "2026-08-19"
+    },
+    {
+      "text": "User: fetching today",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-19",
+      "updated": "2026-08-19"
+    },
+    {
+      "text": "User: well",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-19",
+      "updated": "2026-08-19"
+    },
+    {
+      "text": "User: functioning normally",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-19",
+      "updated": "2026-08-19"
+    },
+    {
+      "text": "User is allergic to shellfish",
+      "category": "preferences",
+      "confidence": 0.95,
+      "source": "explicit",
+      "created": "2026-08-19",
+      "updated": "2026-08-19"
+    }
+  ],
+  "corrections": [],
+  "habits": {
+    "browser_control": 1,
+    "web_search": 1
+  },
+  "history": []
+}
