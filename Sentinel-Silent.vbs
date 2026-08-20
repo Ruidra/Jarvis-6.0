@@ -1,0 +1,20 @@
+' ==========================================================================
+'  Sentinel-Silent.vbs — start the JARVIS Sentinel with no console window.
+'  The Sentinel listens for  *clap clap*  +  "wake up"  and then launches
+'  JARVIS by itself. This is what install_autostart.bat registers at login.
+' ==========================================================================
+Option Explicit
+
+Dim fso, sh, base, py, args
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set sh  = CreateObject("WScript.Shell")
+
+base = fso.GetParentFolderName(WScript.ScriptFullName)
+
+py = base & "\.venv\Scripts\pythonw.exe"
+If Not fso.FileExists(py) Then py = base & "\venv\Scripts\pythonw.exe"
+If Not fso.FileExists(py) Then py = "pythonw.exe"
+
+sh.CurrentDirectory = base
+args = """" & py & """ """ & base & "\sentinel.py"""
+sh.Run args, 0, False

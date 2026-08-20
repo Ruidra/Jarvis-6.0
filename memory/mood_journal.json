@@ -1,5 +1,5 @@
 {
-  "mood": "happy",
+  "mood": "anxious",
   "entries": [
     {
       "ts": 1787154271.330873,
@@ -430,6 +430,276 @@
       "user": "Boss",
       "dominant": "happy",
       "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787196373.0464478,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196385.5214362,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196385.750136,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196385.9130025,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196386.0809567,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196386.186829,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196395.3175561,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196575.9630835,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196576.378967,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196576.5230987,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196576.9633622,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196577.0948384,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196577.465135,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196602.409846,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196602.572812,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196602.9201443,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196603.151766,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196603.202934,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196633.5936327,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196763.2121973,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196809.3315501,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.68,
+      "note": ""
+    },
+    {
+      "ts": 1787196825.668114,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196825.8046973,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196825.980728,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196863.4459934,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196863.6109607,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787196863.680011,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787197255.455459,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787197259.98971,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787197262.5203836,
+      "date": "2026-08-20",
+      "user": "Boss",
+      "dominant": "anxious",
+      "label": "negative",
       "intensity": 0.5,
       "note": ""
     }

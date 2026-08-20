@@ -27,33 +27,38 @@ def is_mac()     -> bool: return get_os() == "mac"
 def is_linux()   -> bool: return get_os() == "linux"
 
 
-## ── Hand control + clap activation constants ──────────────────────────
+## ── Camera (vision / face recognition only — no hand tracking) ─────────
 _cfg = get_config()
 
 CAMERA_INDEX: int = _cfg.get("camera_index", 0)
 CAMERA_WIDTH: int = _cfg.get("camera_width", 1280)
 CAMERA_HEIGHT: int = _cfg.get("camera_height", 720)
-HAND_DETECTION_CONFIDENCE: float = _cfg.get("hand_detection_confidence", 0.65)
-HAND_TRACKING_CONFIDENCE: float = _cfg.get("hand_tracking_confidence", 0.65)
-CLAP_SENSITIVITY: float = _cfg.get("clap_sensitivity", 1.0)
-CLAP_COOLDOWN: float = _cfg.get("clap_cooldown", 2.0)
-WAKE_TIMEOUT: float = _cfg.get("wake_timeout", 10.0)
-HAND_DEBUG: bool = _cfg.get("hand_debug", False)
-WAKE_WORDS: list[str] = _cfg.get("wake_words", ["jarvis", "hey jarvis", "jarvis hey"])
 
-## ── Gesture → action mapping (per-state override or global) ─────────────────
-## Global: applies in any state.  Per-state: only applies when JARVIS is in that state.
-## Actions: "wake" | "lock" | "interrupt" | "sleep"
-GESTURE_ACTION_MAP: dict[str, dict[str, str]] = _cfg.get("gesture_action_map", {
-    "OFFLINE": {"WAVE": "wake", "OPEN_PALM": "wake"},
-    "LOCKED":  {"WAVE": "wake", "OPEN_PALM": "wake"},
-    "READY":   {"POINT": "interrupt", "FIST": "sleep"},
-    "LISTENING": {"FIST": "lock", "WAVE": "wake"},
-})
-## Direct gesture→action overrides (highest priority, any state):
-GESTURE_DIRECT_MAP: dict[str, str] = _cfg.get("gesture_direct_map", {
-    "CLAP": "wake",
-})
+## ── Wake system: clap (microphone) + spoken wake phrase ────────────────
+## Flow:  clap  ➜  JARVIS arms (beep)  ➜  say "wake up"  ➜  JARVIS listens.
+## Everything is microphone-based; the camera is never used to wake JARVIS.
+CLAP_ENABLED: bool = _cfg.get("clap_enabled", True)
+## 1.0 = normal. Raise (1.4) if your claps are missed, lower (0.7) if it
+## triggers on door slams / keyboard noise.
+CLAP_SENSITIVITY: float = _cfg.get("clap_sensitivity", 1.0)
+## How many claps are needed (2 = clap twice — far fewer false triggers).
+CLAP_COUNT: int = int(_cfg.get("clap_count", 2))
+## Max seconds between the first and last clap of the pattern.
+CLAP_WINDOW: float = _cfg.get("clap_window", 1.2)
+## Seconds of silence enforced after a successful clap pattern.
+CLAP_COOLDOWN: float = _cfg.get("clap_cooldown", 1.5)
+
+## Seconds JARVIS stays armed waiting for the wake phrase after a clap.
+WAKE_TIMEOUT: float = _cfg.get("wake_timeout", 12.0)
+## Phrases that finish the wake-up. "wake up" is the primary one.
+WAKE_WORDS: list[str] = _cfg.get("wake_words", [
+    "wake up", "jarvis", "hey jarvis", "wake up jarvis", "jarvis wake up",
+])
+## True  → clap first, then say the phrase (default, avoids random wake-ups).
+## False → saying the phrase alone is enough, no clap needed.
+WAKE_REQUIRE_CLAP: bool = _cfg.get("wake_require_clap", True)
+## Play a short confirmation tone when the clap arms JARVIS.
+WAKE_BEEP: bool = _cfg.get("wake_beep", True)
 
 
 def get_secret(key: str, default: str | None = None) -> str | None:

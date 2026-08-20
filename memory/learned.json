@@ -6,7 +6,7 @@
       "confidence": 0.95,
       "source": "explicit",
       "created": "2026-08-19",
-      "updated": "2026-08-19"
+      "updated": "2026-08-20"
     },
     {
       "text": "User: fetching today",
@@ -14,7 +14,7 @@
       "confidence": 0.8,
       "source": "auto",
       "created": "2026-08-19",
-      "updated": "2026-08-19"
+      "updated": "2026-08-20"
     },
     {
       "text": "User: well",
@@ -39,12 +39,25 @@
       "source": "explicit",
       "created": "2026-08-19",
       "updated": "2026-08-19"
+    },
+    {
+      "text": "User: looking at the camera now",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-20",
+      "updated": "2026-08-20"
     }
   ],
   "corrections": [],
   "habits": {
     "browser_control": 1,
-    "web_search": 1
+    "web_search": 1,
+    "recall_memory": 1,
+    "youtube_video": 1,
+    "wikipedia": 1,
+    "screen_process": 1,
+    "shutdown_jarvis": 1
   },
   "history": []
 }

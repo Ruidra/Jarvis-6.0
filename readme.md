@@ -142,6 +142,47 @@ To add a provider email account, create `config/email_config.json` (see the
 
 ---
 
+## 🛰️ Jarvis 6.0 — Clap-to-Wake, Sentinel & God-Tier Power Tools
+
+The camera/gesture control was **removed**. JARVIS now wakes completely hands-free,
+purely from the microphone, and keeps itself running without manual `python main.py`.
+
+### 🤚➜🎙️ Clap to Activate (no camera, no hand tracking)
+```
+(asleep) ──clap twice──▶ ARMED (beep + orange orb) ──say "wake up"──▶ LISTENING
+```
+- **`ClapDetector`** keys on *attack sharpness + bright spectrum + fast decay*, so
+  speech, music, typing and single/slapped claps are rejected — not plain loudness.
+- **`WakePhraseDetector`** confirms the phrase via an offline chain:
+  **Vosk (exact) → Porcupine → energy VAD fallback**. Vosk model is pre-downloaded
+  once with `python sentinel.py --install-vosk`; nothing is fetched at startup.
+- Config (`config/__init__.py`): `CLAP_ENABLED`, `CLAP_SENSITIVITY`, `CLAP_COUNT`,
+  `CLAP_WINDOW`, `CLAP_COOLDOWN`, `WAKE_TIMEOUT`, `WAKE_WORDS`, `WAKE_REQUIRE_CLAP`,
+  `WAKE_BEEP`. The camera stays only for vision/face recognition, never to wake.
+
+### 🛡️ Sentinel — Boot & Keep-Alive Daemon
+- `sentinel.py` auto-launches JARVIS at **Windows login** and restarts it if it ever
+  exits (pauses itself when JARVIS is already running, hands off the wake request
+  file on launch).
+- `install_autostart.bat` drops a Startup shortcut + installs `sounddevice`/Vosk.
+  `uninstall_autostart.bat` removes it. `Sentinel.bat` / `Clap-Test.bat` for manual use.
+
+### 🦾 Power Tools — JARVIS actually does things on the PC
+`power_tools` action covers clipboard (get/set/append/history), winget app
+install/update/remove, window focus/min/max/close, top processes + kill, lightning-fast
+file search across the PC, Windows services + scheduled tasks, environment variables,
+and power state (shutdown/restart/sleep/lock). **Destructive actions require God Mode.**
+
+### 🧠 Smarter Agents & Brain
+- `core/brain.py` unifies local + Gemini LLM with caching and a `preferred_backend`
+  selector; `core/agent_memory.py` records every mission so routing and quality improve.
+- `core/agent_manager.py` adds `orchestrate` (review → revise), `orchestrate_parallel`,
+  `plan_mission`/`run_mission` (coordinated squad), and `review_agent_output` (structural
+  + LLM critique). New tools: **`run_mission`** (big goals split into a squad) and
+  **`power_tools`** (PC control) are wired into `main.py`.
+
+---
+
 > ⚠️ **Installation Note:** Some OS-specific dependencies are not bundled in `requirements.txt` to keep the repo lightweight. If you hit a `ModuleNotFoundError`, install the missing package with `pip install <module_name>`.
 
 ---

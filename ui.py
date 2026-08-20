@@ -837,15 +837,15 @@ class HudCanvas(QWidget):
             p.drawText(QRectF(0, sy + 54, W, 22), Qt.AlignmentFlag.AlignCenter, _hint)
 
     def _context_hint(self) -> str:
-        """Subtle activation prompt shown only in hand-control idle states."""
+        """Subtle activation prompt shown while JARVIS is asleep or armed."""
         if self.muted:
             return ""
         if self.state == "OFFLINE":
             return "CLAP TWICE TO ACTIVATE"
         if self.state == "READY":
-            return "SAY WAKE WORD  ·  OR GESTURE"
+            return "NOW SAY  \u201cWAKE UP\u201d"
         if self.state == "LOCKED":
-            return "WAVE OR CLAP TO UNLOCK"
+            return "CLAP TWICE  \u00b7  THEN SAY \u201cWAKE UP\u201d"
         return ""
 
     def _draw_gesture_badge(self, p, x: float, y: float, fw: float, g: dict) -> None:

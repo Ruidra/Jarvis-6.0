@@ -40,10 +40,8 @@ import re
 import threading
 import time
 import json
-import queue
 import sys
 import traceback
-import numpy as np
 from datetime import datetime
 from pathlib import Path
 
@@ -88,18 +86,16 @@ from actions.recall             import recall_memory
 from actions.workflow           import workflow as workflow_action
 from actions.network_toolkit    import network_toolkit as network_toolkit_action
 from actions.system_optimizer   import system_optimizer as system_optimizer_action
-from core.agent_manager         import dispatch as agent_dispatch, orchestrate as agent_orchestrate, list_agents, classify_task
+from actions.power_tools         import power_tools as power_tools_action
+from core.agent_manager         import dispatch as agent_dispatch, orchestrate as agent_orchestrate, run_mission as agent_run_mission, list_agents, classify_task
 from memory.config_manager     import get_brief_enabled, get_god_mode, set_god_mode
 from core.event_bus import bus
 from core.observability import metrics as _metrics
 from config import (
-    CAMERA_INDEX, CAMERA_WIDTH, CAMERA_HEIGHT,
-    HAND_DETECTION_CONFIDENCE, HAND_TRACKING_CONFIDENCE,
-    CLAP_SENSITIVITY, CLAP_COOLDOWN, WAKE_TIMEOUT,
-    HAND_DEBUG, WAKE_WORDS, GESTURE_ACTION_MAP, GESTURE_DIRECT_MAP,
+    CLAP_ENABLED, CLAP_SENSITIVITY, CLAP_COUNT, CLAP_WINDOW, CLAP_COOLDOWN,
+    WAKE_TIMEOUT, WAKE_WORDS, WAKE_REQUIRE_CLAP, WAKE_BEEP,
 )
-from hand_controller import HandController
-from clap_detector import ClapDetector
+from core.wake import WakeEngine
 from core.self_healing import llm_replanner_factory
 from core.emotion_engine import EmotionEngine
 from core.learning import learner as _learner
@@ -152,6 +148,25 @@ def _load_system_prompt() -> str:
             "Be concise, direct, and always use the provided tools to complete tasks. "
             "Never simulate or guess results — always call the appropriate tool."
         )
+
+
+# ── Sentinel hand-off ────────────────────────────────────────────────────────
+# sentinel.py (the always-on background listener) drops this file when it hears
+# the clap + wake phrase and launches JARVIS. Finding it means "the user already
+# woke me — start the conversation immediately instead of sleeping".
+WAKE_REQUEST_FILE = BASE_DIR / "logs" / ".wake_request"
+
+
+def _consume_wake_request(max_age: float = 120.0) -> bool:
+    """Return True if the Sentinel asked for an immediate wake (one-shot)."""
+    try:
+        if not WAKE_REQUEST_FILE.exists():
+            return False
+        fresh = (time.time() - WAKE_REQUEST_FILE.stat().st_mtime) <= max_age
+        WAKE_REQUEST_FILE.unlink(missing_ok=True)
+        return fresh
+    except Exception:
+        return False
 
 _CTRL_RE = re.compile(r"<ctrl\d+>", re.IGNORECASE)
 
@@ -941,6 +956,61 @@ TOOL_DECLARATIONS = [
         "parameters": {"type": "OBJECT", "properties": {}, "required": []},
     },
     {
+        "name": "run_mission",
+        "description": (
+            "Plan a big goal into sub-tasks and run them as a coordinated squad of specialist agents, "
+            "then merge the result. Use this for ambitious multi-part goals — e.g. 'research the topic, "
+            "build a small site about it, and prep social posts'. More powerful than delegate_task for "
+            "goals with several moving parts."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "goal": {"type": "STRING", "description": "The big-picture goal to achieve (specific, with desired outcome)."},
+                "context": {"type": "STRING", "description": "Extra context, constraints, or style notes (optional)."},
+                "max_steps": {"type": "STRING", "description": "Rough number of sub-tasks to break the goal into (default 4)."},
+            },
+            "required": ["goal"],
+        },
+    },
+    {
+        "name": "power_tools",
+        "description": (
+            "JARVIS's hands-on PC control toolbox. Use it to actually DO things on the machine: read/write/"
+            "search the clipboard, install/update/remove apps via winget, list/focus/minimize/maximize/close "
+            "windows, show the top processes or kill one, search files lightning fast across the PC, list/"
+            "start/stop Windows services or scheduled tasks, read/set environment variables, or change power "
+            "state (shutdown/restart/sleep/lock). Destructive actions (install, uninstall, kill, power, "
+            "service/task/env changes) require God Mode. Actions: clipboard_get | clipboard_set(text) | "
+            "clipboard_append(text) | clipboard_history | app_search(query) | app_install(query) | "
+            "app_uninstall(query) | app_upgrade | app_updates | list_windows | window_focus(title) | "
+            "window_minimize(title) | window_maximize(title) | window_close(title) | processes(count) | "
+            "kill_process(name) | find_files(pattern,extension,path,newer_days) | services(query) | "
+            "service_start(name) | service_stop(name) | service_restart(name) | tasks | task_create(name,"
+            "command,when) | task_delete(name) | env_get(name) | env_set(name,value) | power(mode,delay) | report"
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {"type": "STRING", "description": "The action to perform (see power_tools help)."},
+                "text": {"type": "STRING", "description": "Text payload for clipboard_set/clipboard_append/env_set (optional)."},
+                "name": {"type": "STRING", "description": "Name for process/service/task/env/window targets (optional)."},
+                "query": {"type": "STRING", "description": "Search term for apps/services/tasks (optional)."},
+                "title": {"type": "STRING", "description": "Window title fragment for window_* actions (optional)."},
+                "pattern": {"type": "STRING", "description": "File name pattern for find_files (optional)."},
+                "extension": {"type": "STRING", "description": "File extension filter for find_files, e.g. pdf (optional)."},
+                "path": {"type": "STRING", "description": "Search root for find_files: home|desktop|downloads|documents|videos|temp (default home)."},
+                "mode": {"type": "STRING", "description": "Power mode: shutdown|restart|sleep|hibernate|lock|logoff|cancel."},
+                "value": {"type": "STRING", "description": "Value for env_set (optional)."},
+                "command": {"type": "STRING", "description": "Command for task_create (optional)."},
+                "when": {"type": "STRING", "description": "Schedule for task_create: logon|HH:MM (optional)."},
+                "count": {"type": "STRING", "description": "Number of rows for processes/window lists (optional)."},
+                "delay": {"type": "STRING", "description": "Delay in seconds for shutdown/restart power actions (optional)."},
+            },
+            "required": ["action"],
+        },
+    },
+    {
         "name": "emotion",
         "description": (
             "JARVIS's emotional-intelligence tool. Use it to check the user's mood, "
@@ -1124,34 +1194,26 @@ class JarvisLive:
         self._last_user_speech = time.monotonic()  # updated on every user utterance
         self._session_log: list[str] = []          # conversation turns for end-of-session summary
 
-        # ── Hand control + clap activation ────────────────────────────────────────
+        # ── Clap + wake-phrase activation (microphone only, no camera) ───────────
+        # Flow:  clap  ➜  READY (beep)  ➜  say "wake up"  ➜  LISTENING
         self._jarvis_state = "OFFLINE"
-        self._hand_event_queue: queue.Queue = queue.Queue(maxsize=100)
-        self._hand_controller = None
-        self._wake_detector = None
-        self._audio_buffer: bytearray = bytearray()
+        self._wake_engine = None
         self._ready_timeout_handle = None
         try:
-            from core.vad import WakeWordDetector
-            self._wake_detector = WakeWordDetector(keywords=WAKE_WORDS, sensitivity=0.5)
-        except Exception as e:
-            print(f"[WAKE] Wake word detector unavailable: {e}")
-
-        try:
-            from hand_controller import HandController
-            self._hand_controller = HandController(
-                camera_index=CAMERA_INDEX,
-                width=CAMERA_WIDTH,
-                height=CAMERA_HEIGHT,
-                detection_conf=HAND_DETECTION_CONFIDENCE,
-                tracking_conf=HAND_TRACKING_CONFIDENCE,
-                event_queue=self._hand_event_queue,
-                debug=HAND_DEBUG,
-                jarvis_state_callback=lambda: self._jarvis_state,
+            self._wake_engine = WakeEngine(
+                sample_rate=SEND_SAMPLE_RATE,
+                phrases=WAKE_WORDS,
+                sensitivity=CLAP_SENSITIVITY,
+                claps_required=CLAP_COUNT,
+                clap_window=CLAP_WINDOW,
+                clap_cooldown=CLAP_COOLDOWN,
+                arm_window=WAKE_TIMEOUT,
+                require_clap=CLAP_ENABLED and WAKE_REQUIRE_CLAP,
             )
+            print(f"[WAKE] Engine ready — phrase backend: {self._wake_engine.backend}")
         except Exception as e:
-            print(f"[HAND] Controller unavailable: {e}")
-            self._hand_controller = None
+            print(f"[WAKE] Wake engine unavailable: {e}")
+            self._wake_engine = None
 
         # ── Plugin system (advanced extensibility) ──
         # Drop a new *.py into plugins/ with a PLUGIN dict + handle() and it becomes
@@ -1201,22 +1263,23 @@ class JarvisLive:
         # ── Quick local commands (no model round-trip needed) ──
         t = (text or "").strip().lower()
 
-        if self._jarvis_state == "LOCKED":
+        if self._jarvis_state in ("LOCKED", "OFFLINE", "READY"):
             if any(w in t for w in ("unlock", "wake", "wake up", "jarvis", "hey jarvis")):
-                self._set_jarvis_state("READY")
-                self._cancel_ready_timeout()
+                self.force_wake("typed command")
                 self._play_activation_sound()
-                loop = asyncio.get_event_loop()
-                self._ready_timeout_handle = loop.call_later(
-                    WAKE_TIMEOUT, self._on_ready_timeout
+                self.speak(
+                    "[WAKE] The user woke you from the text box. Greet them in ONE "
+                    "short sentence. Do not call any tools."
                 )
-                self.ui.write_log("SYS: Unlocked via command")
-                self.speak("JARVIS unlocked, sir.")
                 return
             if any(w in t for w in ("sleep", "sleep mode", "standby")):
+                if self._wake_engine is not None:
+                    self._wake_engine.disarm()
+                self._cancel_ready_timeout()
                 self._set_jarvis_state("OFFLINE")
-                self.ui.write_log("SYS: Going offline from locked state")
-                self.speak("Going offline, sir.")
+                self.ui.write_log(
+                    f"SYS: Asleep — clap {CLAP_COUNT}x then say \"wake up\""
+                )
                 return
 
         if "god mode" in t:
@@ -1283,42 +1346,121 @@ class JarvisLive:
         self.ui.write_log("SYS: Interrupted — listening...")
 
     def _play_activation_sound(self):
+        """Short two-tone chime confirming the clap was heard."""
         def _play():
             try:
                 import numpy as _np
-                sr = 16000
-                t = _np.linspace(0, 0.12, int(sr * 0.12))
-                tone = _np.sin(2 * _np.pi * 880 * t) * 0.3
                 import sounddevice as _sd
-                _sd.play(tone, sr)
+                sr = 16000
+                def _tone(freq, dur, vol=0.28):
+                    t = _np.linspace(0, dur, int(sr * dur), endpoint=False)
+                    env = _np.minimum(1.0, _np.minimum(t / 0.008, (dur - t) / 0.03))
+                    return (_np.sin(2 * _np.pi * freq * t) * vol * env).astype(_np.float32)
+                chime = _np.concatenate([_tone(740, 0.07), _tone(1120, 0.10)])
+                _sd.play(chime, sr)
                 _sd.wait()
             except Exception:
                 pass
         threading.Thread(target=_play, daemon=True).start()
 
-    def _process_wake_word(self, data: bytes):
-        self._audio_buffer.extend(data)
-        frame_size = 1024
-        while len(self._audio_buffer) >= frame_size:
-            frame = bytes(self._audio_buffer[:frame_size])
-            self._audio_buffer = self._audio_buffer[frame_size:]
-            audio_np = np.frombuffer(frame, dtype=np.int16).astype(np.float32) / 32768.0
-            if self._wake_detector and self._wake_detector.detect(audio_np):
-                self._on_wake_word_detected()
-                break
+    # ── Clap + wake-phrase activation ────────────────────────────────────────
+    def _process_wake_audio(self, data: bytes) -> None:
+        """Mic-thread hook: listen for the clap, then the spoken wake phrase.
 
-    def _on_wake_word_detected(self):
-        if self._jarvis_state != "READY":
+        Runs while JARVIS is OFFLINE/READY, so no audio is sent to the cloud
+        until the user has actually woken JARVIS up.
+        """
+        engine = self._wake_engine
+        if engine is None:
+            return
+        try:
+            result = engine.feed(data)
+        except Exception as e:  # never kill the audio callback
+            print(f"[WAKE] feed error: {e}")
+            return
+        if not result:
+            return
+        if result.armed:
+            self._dispatch_to_loop(self._on_clap_armed, result.clap)
+        if result.awake:
+            self._dispatch_to_loop(self._on_wake_confirmed, result.phrase)
+        elif result.disarmed:
+            self._dispatch_to_loop(self._on_ready_timeout)
+
+    def _dispatch_to_loop(self, fn, *args) -> None:
+        """Run a handler on the asyncio loop thread from any thread."""
+        loop = self._loop
+        if loop is None or loop.is_closed():
+            try:
+                fn(*args)
+            except Exception:
+                pass
+            return
+        try:
+            loop.call_soon_threadsafe(lambda: fn(*args))
+        except RuntimeError:
+            pass
+
+    def _on_clap_armed(self, clap=None) -> None:
+        """Clap heard → arm JARVIS and wait for the wake phrase."""
+        _metrics.inc("clap_detected")
+        try:
+            self.ui.clap_feedback()
+        except Exception:
+            pass
+        if self._jarvis_state in ("LISTENING", "SPEAKING"):
+            return                      # already awake, nothing to do
+        self._set_jarvis_state("READY")
+        if WAKE_BEEP:
+            self._play_activation_sound()
+        conf = f" [{clap.confidence:.0%}]" if clap is not None else ""
+        self.ui.write_log(f"[CLAP] Heard{conf} — say \"wake up\"")
+        self._arm_ready_timeout()
+
+    def _on_wake_confirmed(self, phrase: str = "") -> None:
+        """Wake phrase confirmed → open the live conversation."""
+        if self._jarvis_state in ("LISTENING", "SPEAKING"):
             return
         self._cancel_ready_timeout()
         self._set_jarvis_state("LISTENING")
-        self.ui.write_log("[WAKE] Wake word detected")
-        self.speak("Welcome back, sir.")
+        _metrics.inc("wake_confirmed")
+        self.ui.write_log(f"[WAKE] \"{phrase or 'wake up'}\" — JARVIS online")
+        self.speak(
+            "[WAKE] The user just woke you by clapping and saying "
+            f"\"{phrase or 'wake up'}\". Greet them in ONE short sentence and ask "
+            "what they need. Do not call any tools."
+        )
+
+    def force_wake(self, reason: str = "manual") -> None:
+        """Wake JARVIS immediately (sentinel launch, dashboard, typed command)."""
+        if self._wake_engine is not None:
+            self._wake_engine.disarm()
+        self._cancel_ready_timeout()
+        if self._jarvis_state in ("LISTENING", "SPEAKING"):
+            return
+        self._set_jarvis_state("LISTENING")
+        _metrics.inc("wake_forced")
+        self.ui.write_log(f"[WAKE] Activated ({reason})")
+
+    def _arm_ready_timeout(self) -> None:
+        """Backstop timer: drop out of READY if the phrase never arrives."""
+        self._cancel_ready_timeout()
+        loop = self._loop
+        if loop is None:
+            return
+        try:
+            self._ready_timeout_handle = loop.call_later(
+                WAKE_TIMEOUT + 1.0, self._on_ready_timeout
+            )
+        except RuntimeError:
+            self._ready_timeout_handle = None
 
     def _on_ready_timeout(self):
         if self._jarvis_state == "READY":
+            if self._wake_engine is not None:
+                self._wake_engine.disarm()
             self._set_jarvis_state("OFFLINE")
-            self.ui.write_log("SYS: Wake word timeout - returning to offline")
+            self.ui.write_log("SYS: No wake phrase heard — back to sleep")
 
     def _set_jarvis_state(self, state: str):
         self._jarvis_state = state
@@ -1328,115 +1470,14 @@ class JarvisLive:
 
     def _cancel_ready_timeout(self):
         if self._ready_timeout_handle:
-            if self._loop:
-                self._loop.call_soon_threadsafe(
-                    lambda: self._ready_timeout_handle.cancel() if self._ready_timeout_handle else None
-                )
-            self._ready_timeout_handle = None
-
-    def _handle_gesture_action(self, gesture_name: str, state: str):
-        action = GESTURE_DIRECT_MAP.get(gesture_name)
-        if action is None:
-            action = GESTURE_ACTION_MAP.get(state, {}).get(gesture_name)
-        if action is None:
-            return False
-        if isinstance(action, str):
-            if action == "wake":
-                if self._jarvis_state == "LOCKED":
-                    self._set_jarvis_state("READY")
-                    self._cancel_ready_timeout()
-                    self._play_activation_sound()
-                    loop = asyncio.get_event_loop()
-                    self._ready_timeout_handle = loop.call_later(
-                        WAKE_TIMEOUT, self._on_ready_timeout
-                    )
-                    self.ui.write_log(f"[GESTURE] {gesture_name} → Unlocked")
-                    _metrics.inc("gesture_unlock")
-                elif self._jarvis_state == "OFFLINE":
-                    self._set_jarvis_state("READY")
-                    self._play_activation_sound()
-                    loop = asyncio.get_event_loop()
-                    self._ready_timeout_handle = loop.call_later(
-                        WAKE_TIMEOUT, self._on_ready_timeout
-                    )
-                    self.ui.write_log(f"[GESTURE] {gesture_name} → Ready")
-                    _metrics.inc("gesture_wake")
-                elif self._jarvis_state == "READY":
-                    self._cancel_ready_timeout()
-                    loop = asyncio.get_event_loop()
-                    self._ready_timeout_handle = loop.call_later(
-                        WAKE_TIMEOUT, self._on_ready_timeout
-                    )
-                    _metrics.inc("gesture_wake")
-            elif action == "lock":
-                if self._jarvis_state in ("LISTENING", "SPEAKING"):
-                    self._set_jarvis_state("LOCKED")
-                    self.ui.write_log(f"[GESTURE] {gesture_name} → Locked")
-                    _metrics.inc("gesture_lock")
-            elif action == "interrupt":
-                self.interrupt()
-                self.ui.write_log(f"[GESTURE] {gesture_name} → Interrupted")
-                _metrics.inc("gesture_interrupt")
-            elif action == "sleep":
-                self._set_jarvis_state("OFFLINE")
-                self.ui.write_log(f"[GESTURE] {gesture_name} → Offline")
-                _metrics.inc("gesture_sleep")
-            return True
-        return False
-        return False
-
-    async def _process_hand_events(self):
-        loop = asyncio.get_event_loop()
-        while True:
+            handle, self._ready_timeout_handle = self._ready_timeout_handle, None
             try:
-                event = await loop.run_in_executor(None, self._hand_event_queue.get)
-                await self._on_hand_event(event)
-            except Exception as e:
-                print(f"[HAND] Event error: {e}")
-                await asyncio.sleep(0.1)
-
-    async def _on_hand_event(self, event: dict):
-        event_type = event.get("type", "")
-        data = event.get("data", {})
-        jarvis_state = event.get("jarvis_state", self._jarvis_state)
-
-        if event_type == "gesture_clap":
-            _metrics.inc("gestures_clap")
-            try:
-                self.ui.clap_feedback()
+                if self._loop and not self._loop.is_closed():
+                    self._loop.call_soon_threadsafe(handle.cancel)
+                else:
+                    handle.cancel()
             except Exception:
                 pass
-            if jarvis_state == "OFFLINE":
-                self._set_jarvis_state("READY")
-                self.ui.write_log("[CLAP] Detected")
-                self._play_activation_sound()
-                loop = asyncio.get_event_loop()
-                self._ready_timeout_handle = loop.call_later(
-                    WAKE_TIMEOUT, self._on_ready_timeout
-                )
-            elif jarvis_state == "LOCKED":
-                self._set_jarvis_state("READY")
-                self._cancel_ready_timeout()
-                self._play_activation_sound()
-                self.ui.write_log("[CLAP] Unlocked")
-            elif jarvis_state == "READY":
-                self._cancel_ready_timeout()
-                loop = asyncio.get_event_loop()
-                self._ready_timeout_handle = loop.call_later(
-                    WAKE_TIMEOUT, self._on_ready_timeout
-                )
-        elif event_type == "camera_error":
-            _metrics.inc("camera_errors")
-            self.ui.write_log("SYS: Hand control unavailable.")
-        elif event_type.startswith("gesture_"):
-            gesture_name = event_type.replace("gesture_", "").upper()
-            _metrics.inc("gestures_detected")
-            self.ui.write_log(f"[GESTURE] {gesture_name}")
-            try:
-                self.ui.show_gesture_feedback(gesture_name, data.get("confidence", 0.0))
-            except Exception:
-                pass
-            self._handle_gesture_action(gesture_name, jarvis_state)
 
     def speak(self, text: str):
         if not self._loop or not self.session:
@@ -2102,6 +2143,31 @@ class JarvisLive:
             max_steps = int(args.get("max_steps") or 8)
             return await self._run_agent(goal, max_steps)
 
+        elif name == "run_mission":
+            goal = (args.get("goal") or args.get("task") or "").strip()
+            if not goal:
+                return "No goal provided for the mission."
+            max_steps = int(args.get("max_steps") or 4)
+            _mission = await asyncio.to_thread(
+                agent_run_mission, goal, (args.get("context") or ""), None, max_steps
+            )
+            _plan = _mission.get("plan") or []
+            _steps = "\n".join(
+                f"  {i+1}. [{s.get('agent','?')}] {s.get('task','')[:90]}"
+                for i, s in enumerate(_plan)
+            )
+            _summary = _mission.get("summary", "")
+            _full = _mission.get("result", "")
+            return (
+                f"[Mission] {goal}\n"
+                + (f"Plan:\n{_steps}\n\n" if _steps else "")
+                + f"{_summary}\n\n{_full}"
+            )
+
+        elif name == "power_tools":
+            _res = await asyncio.to_thread(power_tools_action, args or {})
+            return str(_res)
+
         elif name == "run_command":
             return await self._run_shell(
                 args.get("command", "").strip(),
@@ -2281,7 +2347,7 @@ class JarvisLive:
     # live audio/video session, would recurse, or would end the process).
     _AGENT_EXCLUDED = frozenset({
         "agent", "shutdown_jarvis", "god_mode", "screen_process", "close_camera",
-        "delegate_task",
+        "delegate_task", "run_mission",
     })
 
     async def _run_agent(self, goal: str, max_steps: int = 8) -> str:
@@ -2422,8 +2488,9 @@ class JarvisLive:
             if jarvis_speaking or self.ui.muted or self._phone_active:
                 return
             data = indata.tobytes()
-            if self._jarvis_state in ("OFFLINE", "READY"):
-                self._process_wake_word(data)
+            if self._jarvis_state in ("OFFLINE", "READY", "LOCKED"):
+                # Asleep/armed → audio stays local: clap + wake-phrase only.
+                self._process_wake_audio(data)
             else:
                 loop.call_soon_threadsafe(
                     self.out_queue.put_nowait,
@@ -3089,12 +3156,23 @@ class JarvisLive:
 
     def _run_health_check(self):
         """Verify subsystems are available; emit metrics and log status."""
-        _metrics.set("hand_controller_available", 1 if self._hand_controller else 0)
-        _metrics.set("wake_detector_available", 1 if self._wake_detector else 0)
-        if self._hand_controller is None:
-            self.ui.write_log("SYS: Hand control not available — clap/gesture activation disabled")
-        if self._wake_detector is None:
-            self.ui.write_log("SYS: Wake word detector not available — voice activation disabled")
+        engine = self._wake_engine
+        _metrics.set("wake_engine_available", 1 if engine else 0)
+        if engine is None:
+            self.ui.write_log(
+                "SYS: Wake engine unavailable — JARVIS will start listening directly"
+            )
+            return
+        st = engine.status()
+        _metrics.set("wake_exact_phrase", 1 if st["exact_phrase_match"] else 0)
+        self.ui.write_log(
+            f"SYS: Wake = clap x{st['claps_required']} + \"{st['phrases'][0]}\" "
+            f"(phrase engine: {st['backend']})"
+        )
+        if not st["exact_phrase_match"]:
+            self.ui.write_log(
+                "SYS: Tip — install Vosk for exact wake-phrase matching: pip install vosk"
+            )
 
     async def run(self):
         self._loop = asyncio.get_event_loop()
@@ -3142,18 +3220,20 @@ class JarvisLive:
                     self._interrupted          = False
 
                     print("[JARVIS] Connected.")
-                    if self._hand_controller:
-                        try:
-                            self._hand_controller.start()
-                            self._set_jarvis_state("OFFLINE")
-                            self.ui.write_log("SYS: Hand control active - clap to activate")
-                            bus.emit("hand.controller_started", source="main")
-                        except Exception as e:
-                            self._hand_controller = None
-                            self._set_jarvis_state("LISTENING")
-                            self.ui.write_log(f"SYS: Hand control unavailable ({e})")
-                    else:
+                    # Wake state: asleep by default (clap + "wake up" to activate).
+                    # If the Sentinel launched us because it already heard the clap
+                    # and the phrase, jump straight into the conversation.
+                    _sentinel_wake = _consume_wake_request()
+                    if self._wake_engine is None:
                         self._set_jarvis_state("LISTENING")
+                    elif _sentinel_wake:
+                        self.force_wake("sentinel clap")
+                        self._play_activation_sound()
+                    else:
+                        self._set_jarvis_state("OFFLINE")
+                        self.ui.write_log(
+                            f"SYS: Asleep — clap {CLAP_COUNT}x then say \"wake up\""
+                        )
                     self.ui.write_log("SYS: JARVIS online.")
 
                     # Cross-session goal tracking — surface open projects at startup.
@@ -3175,8 +3255,6 @@ class JarvisLive:
                     tg.create_task(self._run_background_monitor())
                     tg.create_task(self._run_proactive_mode())
                     tg.create_task(self._run_timer_monitor())
-                    if self._hand_controller:
-                        tg.create_task(self._process_hand_events())
                     if self._dashboard:
                         tg.create_task(self._relay_phone_audio())
 
@@ -3225,8 +3303,8 @@ class JarvisLive:
                 else:
                     self._conn_backoff = 3
             finally:
-                if self._hand_controller:
-                    self._hand_controller.stop()
+                if self._wake_engine is not None:
+                    self._wake_engine.disarm()
                 self.session = None
                 # Only save if there was a real conversation (≥3 turns)
                 if len(self._session_log) >= 3:
@@ -3258,8 +3336,8 @@ def main():
         except KeyboardInterrupt:
             print("\n🔴 Shutting down...")
         finally:
-            if jarvis._hand_controller:
-                jarvis._hand_controller.stop()
+            if jarvis._wake_engine is not None:
+                jarvis._wake_engine.disarm()
 
     threading.Thread(target=runner, daemon=True).start()
     ui.root.mainloop()
