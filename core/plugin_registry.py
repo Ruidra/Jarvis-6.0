@@ -34,7 +34,10 @@ class PluginRegistry:
         self.plugin_dir = Path(plugin_dir) if plugin_dir else (get_base_dir() / "plugins")
         self.manager = PluginManager(self.plugin_dir)
         self.registry_path = self.plugin_dir / "registry.json"
-        self._state: dict[str, Any] = {"enabled": {}, "installed": {}}
+        self._state: dict[str, Any] = {"enabled": {}, "installed": {}, "broken": {}}
+        # Names of built-in tools (set by main.py). A plugin may not shadow one —
+        # collisions are flagged BROKEN instead of silently breaking tool dispatch.
+        self.core_tool_names: set[str] = set()
         self._watcher: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.Lock()
@@ -45,9 +48,10 @@ class PluginRegistry:
             try:
                 self._state = json.loads(self.registry_path.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
-                self._state = {"enabled": {}, "installed": {}}
+                self._state = {"enabled": {}, "installed": {}, "broken": {}}
         self._state.setdefault("enabled", {})
         self._state.setdefault("installed", {})
+        self._state.setdefault("broken", {})
 
     def _save_state(self) -> None:
         try:
@@ -61,7 +65,21 @@ class PluginRegistry:
         self._load_state()
         names = self.manager.discover()
         with self._lock:
+            # Pull load/validation/name-collision errors from the manager so a
+            # broken plugin is recorded (and can be shown as BROKEN) rather than
+            # silently dropped.
+            self._state["broken"] = dict(self.manager.list_broken())
+            # A plugin must not shadow a built-in tool. Flag it BROKEN and keep it
+            # out of dispatch / tool declarations. First loaded plugin wins.
+            for name in list(self.manager.plugins.keys()):
+                if name in self.core_tool_names:
+                    self._state["broken"][name] = (
+                        f"Name '{name}' collides with a built-in tool - rename the plugin."
+                    )
+                    self.manager.plugins.pop(name, None)
             for name in names:
+                if name in self.core_tool_names:
+                    continue
                 meta = self.manager.get(name)["meta"]
                 self._state["installed"][name] = {
                     "description": meta.get("description", ""),
@@ -75,6 +93,11 @@ class PluginRegistry:
                     self._state["enabled"].pop(name, None)
             self._save_state()
         return names
+
+    def broken(self) -> dict[str, str]:
+        """Return {plugin_or_file: reason} for plugins that failed to load."""
+        with self._lock:
+            return dict(self._state.get("broken", {}))
 
     def is_enabled(self, name: str) -> bool:
         with self._lock:

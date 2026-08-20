@@ -204,6 +204,20 @@ def format_memory_for_prompt(memory: dict[str, Any] | None) -> str:
     for category, heading, limit, humanize_key in _PROMPT_SECTIONS:
         lines.extend(_format_section(memory, category, heading, limit, humanize_key))
 
+    # Bridge the auto-learner (regex fact extraction) into the model's context.
+    # Without this, facts JARVIS teaches *itself* during conversation are stored
+    # in learned.json but never surfaced, so the assistant "forgets" them.
+    try:
+        from core.learning import learner as _learner
+        _lf = _learner.learned_facts(limit=20)
+        if _lf:
+            lines.append("")
+            lines.append("Auto-learned facts (from earlier conversations):")
+            for _f in _lf:
+                lines.append(f"  - {_f}")
+    except Exception:
+        pass
+
     if not lines:
         return ""
 

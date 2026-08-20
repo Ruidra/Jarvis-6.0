@@ -24,15 +24,16 @@ logger = logging.getLogger("jarvis.plugin.plugin_manager")
 PLUGIN = {
     "name": "plugin_manager",
     "description": (
-        "Manage Jarvis plugins. List installed plugins, or enable/disable a "
-        "specific plugin by name. Use when the user says 'list plugins', "
-        "'what plugins do you have', 'enable plugin X', or 'disable plugin X'."
+        "Manage Jarvis plugins. List installed plugins (including any BROKEN "
+        "ones and why they failed), or enable/disable a specific plugin by "
+        "name. Use when the user says 'list plugins', 'what plugins do you "
+        "have', 'show broken plugins', 'enable plugin X', or 'disable plugin X'."
     ),
-    "triggers": ["list plugins", "enable plugin", "disable plugin", "manage plugin"],
+    "triggers": ["list plugins", "enable plugin", "disable plugin", "manage plugin", "broken plugins"],
     "parameters": {
         "type": "OBJECT",
         "properties": {
-            "action": {"type": "STRING", "description": "list | enable | disable (default: list)"},
+            "action": {"type": "STRING", "description": "list | enable | disable | broken (default: list)"},
             "name":   {"type": "STRING", "description": "Plugin id to enable/disable, e.g. 'quiz'."},
         },
         "required": [],
@@ -47,11 +48,28 @@ def handle(intent: str, args: dict, ctx: dict) -> str:
     if not reg:
         return "Plugin registry isn't available right now."
 
+    if action in ("broken", "errors", "status"):
+        broken = reg.broken()
+        if not broken:
+            return "✅ No broken plugins — everything loaded cleanly."
+        out = ["⚠️ Broken plugins (not loaded):"]
+        for key, reason in broken.items():
+            out.append(f"• {key}: {reason}")
+        out.append("")
+        out.append("Fix the file, then say 'list plugins' to reload.")
+        return "\n".join(out)
+
     if action == "list":
         out = ["🧩 Installed plugins:"]
         for name, p in reg.manager.plugins.items():
             state = "ENABLED" if reg.is_enabled(name) else "disabled"
             out.append(f"• {name} [{state}] — {p['meta'].get('description', '')}")
+        broken = reg.broken()
+        if broken:
+            out.append("")
+            out.append("⚠️ Broken (not loaded):")
+            for key, reason in broken.items():
+                out.append(f"• {key}: {reason}")
         return "\n".join(out)
 
     name = (args.get("name") or "").strip().lower()

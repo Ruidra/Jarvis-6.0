@@ -242,6 +242,11 @@ class Learner:
         lines = [f"• {f['text']}  ({f['category']})" for f in facts]
         return "Here's what I've learned so far:\n" + "\n".join(lines)
 
+    def learned_facts(self, limit: int = 20) -> list[str]:
+        """Return learned fact texts most-recent-first (for surfacing to the model)."""
+        with self._lock:
+            return [f["text"] for f in self._data.get("facts", [])[-limit:]]
+
     def count(self) -> int:
         with self._lock:
             return len(self._data.get("facts", []))

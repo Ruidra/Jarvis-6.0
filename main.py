@@ -35,6 +35,7 @@ from core.plugin_registry import PluginRegistry
 # ─────────────────────────────────────────────────────────────────────────────
 
 import asyncio
+import os
 import re
 import threading
 import time
@@ -117,8 +118,28 @@ def get_base_dir():
 BASE_DIR        = get_base_dir()
 API_CONFIG_PATH = BASE_DIR / "config" / "api_keys.json"
 PROMPT_PATH     = BASE_DIR / "core" / "prompt.txt"
-LIVE_MODEL          = "models/gemini-2.5-flash-native-audio-preview-12-2025"
+DEFAULT_LIVE_MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025"
 CHANNELS            = 1
+
+def get_live_model() -> str:
+    """Resolve the live model, allowing instant override without code edits.
+
+    Priority: JARVIS_LIVE_MODEL env > config/api_keys.json `live_model` >
+    built-in default. This lets the user move to a faster model the moment one
+    is available, shrinking first-token latency.
+    """
+    env = (os.environ.get("JARVIS_LIVE_MODEL") or "").strip()
+    if env:
+        return env
+    try:
+        with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
+            cfg = json.load(f) or {}
+        m = (cfg.get("live_model") or "").strip()
+        if m:
+            return m
+    except Exception:
+        pass
+    return DEFAULT_LIVE_MODEL
 SEND_SAMPLE_RATE    = 16000
 RECEIVE_SAMPLE_RATE = 24000
 CHUNK_SIZE          = 1024
@@ -1222,6 +1243,8 @@ class JarvisLive:
         # tool list at connect time (see _build_config). Hot-reload is on by default.
         self._user_name = ""
         self._plugins = PluginRegistry()
+        # Let the registry reject plugins that would shadow a built-in tool name.
+        self._plugins.core_tool_names = {d["name"] for d in TOOL_DECLARATIONS}
         try:
             _discovered = self._plugins.discover()
             self._plugins.start_watching(poll_seconds=3.0)
@@ -1722,6 +1745,13 @@ class JarvisLive:
             system_instruction="\n".join(parts),
             tools=[{"function_declarations": TOOL_DECLARATIONS + self._plugin_tool_declarations()}],
             session_resumption=types.SessionResumptionConfig(),
+            # Tuning for speed + decisiveness: a lower temperature makes JARVIS
+            # commit to an action/answer faster instead of hedging, which both
+            # trims latency and reduces wishy-washy replies.
+            generation_config=types.GenerationConfig(
+                temperature=0.7,
+                top_p=0.92,
+            ),
             speech_config=types.SpeechConfig(
                 voice_config=types.VoiceConfig(
                     prebuilt_voice_config=types.PrebuiltVoiceConfig(
@@ -2023,18 +2053,32 @@ class JarvisLive:
             return r or "Done."
 
         elif name == "web_search":
-            r = await loop.run_in_executor(None, lambda: web_search_action(parameters=args, player=self.ui))
+            _mode = (args.get("mode") or "search").lower()
+            _query = (args.get("query") or ", ".join(args.get("items", [])) or "").strip()
+            # Lower-churn modes (search/price/compare) are safe to cache; news is
+            # time-sensitive so it gets a short TTL. This avoids hammering the
+            # network for repeated asks and slashes response latency.
+            _cache_key = f"web:{_mode}:{_query[:80].lower()}"
+            _ttl = 300 if _mode == "news" else 900
+            r = _fast_cache.get(_cache_key)
+            if r is None:
+                r = await loop.run_in_executor(None, lambda: web_search_action(parameters=args, player=self.ui))
+                if r and not r.startswith("No results") and not r.startswith("Search failed"):
+                    _fast_cache.set(_cache_key, r, ttl=_ttl)
             if r and not r.startswith("No results") and not r.startswith("Search failed"):
-                _mode = args.get("mode", "search")
-                _query = args.get("query") or ", ".join(args.get("items", []))
                 _label = f"{_mode.upper()} — {_query[:38]}" if _query else _mode.upper()
                 self.ui.show_content(_label, r)
             return r or "Done."
 
         elif name == "research":
-            r = await loop.run_in_executor(None, lambda: deep_research(parameters=args, player=self.ui))
+            _rtopic = (args.get("topic") or "").strip().lower()
+            _cache_key = f"research:{_rtopic[:80]}"
+            r = _fast_cache.get(_cache_key)
+            if r is None:
+                r = await loop.run_in_executor(None, lambda: deep_research(parameters=args, player=self.ui))
+                if r:
+                    _fast_cache.set(_cache_key, r, ttl=1800)
             if r:
-                _rtopic = args.get("topic") or ""
                 self.ui.show_content(f"RESEARCH — {_rtopic[:38]}", r)
             return r or "No research results."
 
@@ -2080,7 +2124,13 @@ class JarvisLive:
             return r or "Done."
 
         elif name == "flight_finder":
-            r = await loop.run_in_executor(None, lambda: flight_finder(parameters=args, player=self.ui))
+            _fkey = "flight:" + "-".join(str(args.get(k, "")) for k in
+                                        ("origin", "destination", "date", "return_date", "cabin"))
+            r = _fast_cache.get(_fkey)
+            if r is None:
+                r = await loop.run_in_executor(None, lambda: flight_finder(parameters=args, player=self.ui))
+                if r:
+                    _fast_cache.set(_fkey, r, ttl=1800)
             return r or "Done."
 
         elif name == "manage_monitor":
@@ -3252,7 +3302,7 @@ class JarvisLive:
 
         while True:
             try:
-                print("[JARVIS] Connecting...")
+                print(f"[JARVIS] Connecting... (model: {get_live_model()})")
                 self.ui.set_state("THINKING")
                 config = self._build_config()
 
@@ -3263,7 +3313,7 @@ class JarvisLive:
                 )
 
                 async with (
-                    client.aio.live.connect(model=LIVE_MODEL, config=config) as session,
+                    client.aio.live.connect(model=get_live_model(), config=config) as session,
                     asyncio.TaskGroup() as tg,
                 ):
                     self.session          = session

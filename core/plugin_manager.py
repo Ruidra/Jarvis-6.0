@@ -46,19 +46,32 @@ class PluginManager:
     def __init__(self, plugin_dir: str | Path | None = None) -> None:
         self.plugin_dir = Path(plugin_dir) if plugin_dir else (get_base_dir() / "plugins")
         self.plugins: dict[str, dict[str, Any]] = {}
+        # filename_stem -> human-readable reason a plugin failed to load/validate.
+        # Surfaced by the registry so a bad plugin shows up as BROKEN instead of
+        # vanishing silently.
+        self.broken: dict[str, str] = {}
 
     def discover(self) -> list[str]:
-        """Load every valid plugin module from ``plugin_dir``. Returns plugin names."""
+        """Load every valid plugin module from ``plugin_dir``. Returns plugin names.
+
+        Broken plugins (import error, missing PLUGIN dict, missing handler, or a
+        name collision with another plugin) are recorded in ``self.broken`` keyed
+        by filename stem so the registry can surface them as BROKEN — they never
+        crash JARVIS and never overwrite a working plugin.
+        """
         self.plugins.clear()
+        self.broken.clear()
         if not self.plugin_dir.exists():
             logger.warning("Plugin directory missing: %s", self.plugin_dir)
             return []
         found: list[str] = []
+        seen_names: dict[str, str] = {}  # plugin name -> owning filename stem
         for path in sorted(self.plugin_dir.glob("*.py")):
             if path.name.startswith("_"):
                 continue
+            stem = path.stem
             try:
-                mod_name = f"jarvis_plugins.{path.stem}"
+                mod_name = f"jarvis_plugins.{stem}"
                 # Evict any cached module AND stale .pyc bytecode so hot-reload
                 # always re-executes the CURRENT file.  importlib's
                 # SourceFileLoader uses mtime-based .pyc invalidation, which can
@@ -72,25 +85,43 @@ class PluginManager:
                 sys.modules[mod_name] = module
                 exec(compile(source, str(path), "exec"), module.__dict__)
             except Exception as exc:  # noqa: BLE001 - a bad plugin must not crash the app
+                self.broken[stem] = f"Failed to load: {type(exc).__name__}: {exc}"
                 logger.error("Failed to load plugin %s: %s", path.name, exc)
                 sys.modules.pop(mod_name, None)
                 continue
 
             meta = getattr(module, "PLUGIN", None)
             if not isinstance(meta, dict) or "name" not in meta:
+                self.broken[stem] = "Missing or invalid PLUGIN dict (needs a 'name')."
                 logger.warning("Plugin %s has no PLUGIN dict; skipping", path.name)
+                continue
+
+            name = meta["name"]
+            if name in seen_names:
+                self.broken[stem] = (
+                    f"Name '{name}' collides with plugin '{seen_names[name]}'."
+                )
+                logger.warning("Plugin %s name collision; skipping", path.name)
                 continue
 
             handler_name = meta.get("handler", "handle")
             handler: Callable | None = getattr(module, handler_name, None)
             if handler is None or not callable(handler):
+                self.broken[stem] = f"Missing callable handler '{handler_name}'."
                 logger.warning("Plugin %s missing callable '%s'; skipping", path.name, handler_name)
                 continue
 
-            self.plugins[meta["name"]] = {"meta": meta, "module": module, "handle": handler}
-            found.append(meta["name"])
+            self.plugins[name] = {"meta": meta, "module": module, "handle": handler}
+            seen_names[name] = stem
+            found.append(name)
         logger.info("Discovered %d plugin(s): %s", len(found), found)
+        if self.broken:
+            logger.warning("Broken plugin(s): %s", self.broken)
         return found
+
+    def list_broken(self) -> dict[str, str]:
+        """Return {filename_stem: reason} for plugins that failed to load."""
+        return dict(self.broken)
 
     def get(self, name: str) -> dict[str, Any] | None:
         return self.plugins.get(name)

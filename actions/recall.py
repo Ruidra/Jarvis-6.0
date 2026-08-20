@@ -65,4 +65,19 @@ def recall_memory(parameters: dict, player: Any = None) -> str:
         return f"I couldn't find anything about '{query}'{scope}."
 
     header = f"From memory (matching '{query}'):" if query else "Matching memories:"
-    return header + "\n" + "\n".join(results[:20])
+    out = header + "\n" + "\n".join(results[:20])
+
+    # Also consult the auto-learner's store so facts JARVIS taught *itself* are
+    # reachable through this tool, not just facts saved via save_memory.
+    try:
+        from core.learning import learner as _learner
+        _facts = _learner.learned_facts(limit=40)
+        if query:
+            _facts = [f for f in _facts if q in f.lower()]
+        if _facts:
+            _extra = "\n".join(f"- {f}" for f in _facts[:15])
+            out += "\n\nAuto-learned facts:\n" + _extra
+    except Exception:
+        pass
+
+    return out
