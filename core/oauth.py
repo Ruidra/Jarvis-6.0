@@ -50,7 +50,10 @@ class OAuthManager:
             if self.store_path.exists():
                 data = json.loads(self.store_path.read_text(encoding="utf-8"))
                 for prov, t in data.items():
-                    self._tokens[prov] = OAuthToken(provider=prov, **t)
+                    # `t` already carries the `provider` field (saved via vars()),
+                    # so unpack it directly — re-passing provider= would raise
+                    # "multiple values for argument".
+                    self._tokens[prov] = OAuthToken(**t)
         except Exception as e:  # noqa: BLE001
             logger.warning("OAuth store load failed: %s", e)
 

@@ -298,7 +298,6 @@ class _VisionSession:
             print(f"[Vision] 🔄 Reconnecting in {backoff:.0f}s...")
             await asyncio.sleep(backoff)
             backoff = min(backoff * 1.5, 30.0)
-            self._ready_evt.set()  
 
     async def _send_loop(self) -> None:
         while True:

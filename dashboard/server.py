@@ -71,10 +71,10 @@ def _make_uploads_dir() -> Path:
 UPLOADS_DIR = _make_uploads_dir()
 
 def _get_gemini_key() -> str | None:
+    # Use the canonical accessor so encrypted-vault keys are honored too.
+    from memory.config_manager import get_gemini_key
     try:
-        import json as _json
-        with open(BASE_DIR / "config" / "api_keys.json", "r", encoding="utf-8") as f:
-            return _json.load(f).get("gemini_api_key")
+        return get_gemini_key()
     except Exception:
         return None
 

@@ -152,9 +152,10 @@ def _clipboard_set(text: str, append: bool = False) -> str:
         # PowerShell fallback via a temp file (handles newlines and quotes).
         tmp = Path(os.environ.get("TEMP", ".")) / "_jarvis_clip.txt"
         tmp.write_text(text, encoding="utf-8")
+        safe_path = str(tmp).replace("'", "''")
         code, out = _run(
             ["powershell", "-NoProfile", "-Command",
-             f"Get-Content -LiteralPath '{tmp}' -Raw | Set-Clipboard"], timeout=15,
+             f"Get-Content -LiteralPath '{safe_path}' -Raw | Set-Clipboard"], timeout=15,
         )
         tmp.unlink(missing_ok=True)
         if code != 0:

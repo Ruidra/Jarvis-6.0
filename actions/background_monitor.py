@@ -13,9 +13,10 @@ from pathlib import Path
 # ── Blocked categories (never monitor regardless of what user says) ────────────
 
 _BLOCKED = {
-    # Jarvisa / varlık adları — her dilde aynı yazılır
+    # Crypto / finance assets & terms — matched on whole words to avoid blocking
+    # benign topics (e.g. "session token", "Coin-operated laundry").
     "bitcoin", "ethereum", "dogecoin", "solana", "binance",
-    "nft", "blockchain", "defi", "altcoin", "memecoin", "coin", "token",
+    "nft", "blockchain", "defi", "altcoin", "memecoin",
     # "kripto" kökünün farklı dillerdeki yazılışları
     "crypto", "kripto", "cripto", "krypto", "крипто", "仮想通貨", "暗号資産",
     "cryptocurrency",

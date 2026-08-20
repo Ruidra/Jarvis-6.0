@@ -54,31 +54,41 @@ class Supervisor:
         with self._lock:
             return time.time() - self._heartbeat > self.health_timeout
 
-    def _run_once(self) -> None:
+    def _run_once(self) -> bool:
+        """Run the target once. Returns True if it crashed, False on clean exit."""
         try:
             self.target()
+            return False
         except Exception as exc:  # noqa: BLE001 - supervisor's whole job is to catch this
             logger.error("Supervised target crashed: %s", exc)
+            return True
 
     def _monitor(self) -> None:
         restarts: list[float] = []
         while not self._stop.is_set():
             if self._health_stale():
                 logger.warning("Health check stale — restarting target.")
-                # the thread is daemonic; start a fresh one
-            t = threading.Thread(target=self._run_once, daemon=True, name="supervised")
+            crashed: dict[str, bool] = {}
+
+            def _target() -> None:
+                crashed["v"] = self._run_once()
+
+            t = threading.Thread(target=_target, daemon=True, name="supervised")
             t.start()
             t.join()
             if self._stop.is_set():
                 break
-            now = time.time()
-            restarts = [r for r in restarts if now - r < self.window_seconds]
-            restarts.append(now)
-            self.restart_count = len(restarts)
-            if len(restarts) > self.max_restarts:
-                logger.error("Max restarts (%d) exceeded — giving up.", self.max_restarts)
-                break
-            logger.info("Restarting supervised target in %.1fs (count=%d)", self.restart_delay, len(restarts))
+            # Only crashes consume a restart slot; a clean exit is just a normal
+            # "keep-alive" restart and must not burn the max_restarts budget.
+            if crashed.get("v", True):
+                now = time.time()
+                restarts = [r for r in restarts if now - r < self.window_seconds]
+                restarts.append(now)
+                self.restart_count = len(restarts)
+                if len(restarts) > self.max_restarts:
+                    logger.error("Max restarts (%d) exceeded — giving up.", self.max_restarts)
+                    break
+            logger.info("Restarting supervised target in %.1fs", self.restart_delay)
             self._stop.wait(self.restart_delay)
 
     def start(self, blocking: bool = True) -> None:

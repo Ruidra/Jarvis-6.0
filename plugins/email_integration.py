@@ -84,9 +84,8 @@ def _load_cfg() -> dict:
 
 def _decode(value: str) -> str:
     try:
-        parts, _ = decode_header(value)
         out = []
-        for b, enc in parts:
+        for b, enc in decode_header(value):
             if isinstance(b, bytes):
                 out.append(b.decode(enc or "utf-8", "replace"))
             else:

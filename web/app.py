@@ -45,7 +45,14 @@ def build_app():
         return "\n".join(lines) or "_No plugins installed._"
 
     def run_plugin(name: str, arg: str) -> str:
-        res = registry.dispatch(name, {"arg": arg}, {"user_name": "user"})
+        # Plugins read their own first-argument key (topic, coin, text, expr,
+        # value, ...). Pass the user's argument under the common keys so the
+        # Run button works for the majority of plugins.
+        args = {
+            "arg": arg, "text": arg, "query": arg, "topic": arg,
+            "coin": arg, "expr": arg, "value": arg, "title": arg,
+        }
+        res = registry.dispatch(name, args, {"user_name": "user"})
         return str(res) if res is not None else f"No enabled plugin matched '{name}'."
 
     with gr.Blocks(title="Jarvis Web") as app:

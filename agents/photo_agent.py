@@ -102,7 +102,8 @@ def _generate_image(prompt: str, ws: Path) -> dict[str, Any]:
                         path = parts[1].strip()
                     break
             return {"success": True, "path": path, "message": result}
-        return {"success": True, "path": None, "message": result or "Image generated."}
+        # No "saved" marker → generation actually failed; do not report success.
+        return {"success": False, "path": None, "message": result or "Image generation failed."}
     except Exception as e:
         logger.error("Image generation failed: %s", e)
         # Fallback: return the prompt so user can use it manually

@@ -158,7 +158,7 @@ def _import_kokoro_pipeline():
         return _try_import()
     except Exception as first_err:
         err_msg = str(first_err)
-        if not any(Jarviser in err_msg for Jarviser in _KOKORO_COMPAT_ERRORS):
+        if not any(kw in err_msg for kw in _KOKORO_COMPAT_ERRORS):
             # Unrelated error (kokoro not installed, etc.)
             raise RuntimeError(
                 f"Kokoro import failed: {first_err}\n"

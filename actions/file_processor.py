@@ -295,9 +295,7 @@ def _process_text_doc(path: Path, file_type: str, action: str,
     }
 
     if action not in prompt_map:
-
-        action  = "custom"
-        instruction = action
+        action = "custom"
 
     try:
         model    = _gemini_client()
@@ -377,11 +375,22 @@ def _process_data(path: Path, file_type: str, action: str,
         if not col or col not in df.columns:
             return f"Column '{col}' not found. Available: {', '.join(df.columns)}"
         try:
-            if condition == "equals":     filtered = df[df[col] == value]
-            elif condition == "contains": filtered = df[df[col].astype(str).str.contains(str(value), case=False)]
-            elif condition == "gt":       filtered = df[df[col] > float(value)]
-            elif condition == "lt":       filtered = df[df[col] < float(value)]
-            else:                         filtered = df[df[col] == value]
+            col_data = df[col]
+            if condition == "contains":
+                filtered = df[col_data.astype(str).str.contains(str(value), case=False)]
+            elif condition == "equals":
+                # Match numerically when the column is numeric, else as text.
+                try:
+                    num = pd.to_numeric(col_data)
+                    filtered = df[num == pd.to_numeric(value)]
+                except (ValueError, TypeError):
+                    filtered = df[col_data.astype(str).str.strip() == str(value).strip()]
+            elif condition == "gt":
+                filtered = df[pd.to_numeric(col_data) > float(value)]
+            elif condition == "lt":
+                filtered = df[pd.to_numeric(col_data) < float(value)]
+            else:
+                filtered = df[col_data.astype(str).str.strip() == str(value).strip()]
             out = _output_path(path, "filtered", ".csv")
             filtered.to_csv(out, index=False)
             return f"Filtered: {len(filtered)} rows match. Saved: {out.name}"

@@ -23,6 +23,7 @@ from __future__ import annotations
 import logging
 import math
 import re
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -111,12 +112,13 @@ class VectorMemory:
 
     # ── public API ────────────────────────────────────────────────────────────
     def add(self, text: str, metadata: dict[str, Any] | None = None, id: str | None = None) -> str:
+        # uuid avoids id collisions when the same text is added more than once
+        # (in chroma mode self._docs never grows, so len()-based ids would clash).
+        cid = id or f"doc_{uuid.uuid4().hex}"
         if self._backend == "chromadb":
-            cid = id or f"doc_{len(self._docs)}_{abs(hash(text))}"
             self._collection.add(documents=[text], metadatas=[metadata], ids=[cid])  # type: ignore[union-attr]
             return cid
         with self._lock:
-            cid = id or f"doc_{len(self._docs)}_{abs(hash(text))}"
             self._docs.append({"id": cid, "text": text, "meta": metadata or {}, "vec": _embed(text)})
         return cid
 
@@ -129,7 +131,9 @@ class VectorMemory:
                 metas = (res.get("metadatas") or [[]])[0]
                 dists = (res.get("distances") or [[]])[0]
                 for d, m, dist in zip(docs, metas, dists):
-                    out.append({"text": d, "metadata": m, "score": 1.0 - float(dist)})
+                    # Chroma distance is in [0, 2] for cosine; normalize to a
+                    # [0, 1] similarity score that matches the offline path.
+                    out.append({"text": d, "metadata": m, "score": max(0.0, 1.0 - float(dist) / 2.0)})
                 return out
             except Exception as exc:  # noqa: BLE001 - fall back to offline if chroma query fails
                 logger.warning("chromadb query failed, using offline: %s", exc)

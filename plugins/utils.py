@@ -84,6 +84,8 @@ def _password(length: int, symbols: bool) -> str:
 
 def _convert(value: float, frm: str, to: str) -> float | None:
     frm, to = frm.lower().strip(), to.lower().strip()
+    if frm == to:
+        return value
     if frm in _LENGTH and to in _LENGTH:
         return value * _LENGTH[frm] / _LENGTH[to]
     if frm in _MASS and to in _MASS:

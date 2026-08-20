@@ -1618,8 +1618,6 @@ class JarvisLive:
         self.speak_with_emotion(msg, prosody)
 
     def _build_config(self) -> types.LiveConnectConfig:
-        from datetime import datetime
-
         # Load customization from config
         try:
             _cfg = json.loads(open(API_CONFIG_PATH, encoding="utf-8").read())

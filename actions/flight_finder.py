@@ -118,7 +118,6 @@ def _build_google_flights_url(
     return (
         f"{base}"
         f"?q={trip}"
-        f"&tfs=CBwQAhoeEgoyMDI1LTAzLTE1agcIARIDSVNUcgcIARIDTEhS"   
         f"&curr=USD"
         f"&cabin={cabin_code}"
         f"&adults={passengers}"

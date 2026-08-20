@@ -358,7 +358,7 @@ def _simplify_steps(raw: list[dict]) -> list[dict]:
     for step in raw:
         stype = step.get("type")
         if stype == "move":
-            if last_move and time.time() - step.get("ts", 0) < 0.1:
+            if last_move and step.get("ts", 0) - last_move.get("ts", 0) < 0.1:
                 last_move = step
                 continue
             last_move = step
@@ -368,7 +368,7 @@ def _simplify_steps(raw: list[dict]) -> list[dict]:
 
         if stype == "hotkey":
             k = step.get("keys", "")
-            if last_hotkey and last_hotkey.get("keys") == k and time.time() - step.get("ts", 0) < 0.2:
+            if last_hotkey and last_hotkey.get("keys") == k and step.get("ts", 0) - last_hotkey.get("ts", 0) < 0.2:
                 continue
             last_hotkey = step
             simplified.append(step)

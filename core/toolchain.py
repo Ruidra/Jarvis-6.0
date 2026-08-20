@@ -29,8 +29,12 @@ from core.security import get_base_dir
 logger = logging.getLogger(__name__)
 
 # Read-only / safe commands the agent may run without explicit approval.
+# NOTE: bare `python`/`python3`/`git` are intentionally NOT here — allowing
+# `base = command.split()[0]` to match them would let `python -c "..."` or
+# arbitrary `git` subcommands through the safety gate unchecked.  Only exact
+# full-command entries (e.g. "git status") are allowlisted.
 DEFAULT_ALLOWLIST = {
-    "dir", "ls", "pwd", "echo", "date", "whoami", "python", "python3",
+    "dir", "ls", "pwd", "echo", "date", "whoami",
     "git status", "git log", "git diff", "type", "cat", "head", "tail",
 }
 
