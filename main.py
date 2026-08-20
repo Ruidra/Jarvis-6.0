@@ -92,7 +92,7 @@ from core.observability import metrics as _metrics
 from config import (
     CLAP_ENABLED, CLAP_SENSITIVITY, CLAP_COUNT, CLAP_WINDOW, CLAP_COOLDOWN,
     WAKE_TIMEOUT, WAKE_WORDS, WAKE_REQUIRE_CLAP, WAKE_BEEP,
-    WAKE_FULLSCREEN, WAKE_BOOT_DELAY,
+    WAKE_FULLSCREEN, WAKE_BOOT_DELAY, WAKE_GREETING_INSTANT,
 )
 from core.wake import WakeEngine
 from core.emotion_engine import EmotionEngine
@@ -1268,10 +1268,7 @@ class JarvisLive:
             if any(w in t for w in ("unlock", "wake", "wake up", "jarvis", "hey jarvis")):
                 self.force_wake("typed command")
                 self._play_activation_sound()
-                self.speak(
-                    "[WAKE] The user woke you from the text box. Greet them in ONE "
-                    "short sentence. Do not call any tools."
-                )
+                self._wake_greeting("typed command")
                 return
             if any(w in t for w in ("sleep", "sleep mode", "standby")):
                 if self._wake_engine is not None:
@@ -1417,6 +1414,37 @@ class JarvisLive:
         except RuntimeError:
             pass
 
+    def _wake_greeting(self, phrase: str = "") -> None:
+        """Acknowledge the wake as fast as possible.
+
+        If a *local offline* voice (Kokoro) is available we greet with it
+        directly — no network/model round-trip, so JARVIS 'talks back' within a
+        fraction of a second of the wake word. Otherwise we fall back to the
+        model (native voice, persona-aware). Either way the mic is already open
+        (state LISTENING), so the user's first real request is answered
+        immediately.
+        """
+        greeting = "Good to see you, Boss. What can I do for you?"
+        if WAKE_GREETING_INSTANT and getattr(self._prosody, "instant", False):
+            # Mute the mic while the local voice plays so JARVIS doesn't hear
+            # (and answer) itself, then re-open it shortly after.
+            self.set_speaking(True)
+            try:
+                self._prosody.speak(greeting, {"rate": 1.08, "pitch": 1.05})
+            except Exception:
+                self.set_speaking(False)
+            else:
+                loop = self._loop
+                if loop is not None and not loop.is_closed():
+                    loop.call_later(2.0, lambda: self.set_speaking(False))
+                else:
+                    self.set_speaking(False)
+            return
+        self.speak(
+            f"[WAKE] The user just woke you by saying \"{phrase or 'wake up'}\". "
+            "Greet them in ONE short sentence and ask what they need. Do not call any tools."
+        )
+
     def _on_clap_armed(self, clap=None) -> None:
         """Clap heard → arm JARVIS and wait for the wake phrase."""
         _metrics.inc("clap_detected")
@@ -1457,11 +1485,7 @@ class JarvisLive:
                 self.ui.wake_sequence(delay=0.0)
             except Exception:
                 pass
-        self.speak(
-            "[WAKE] The user just woke you by clapping and saying "
-            f"\"{phrase or 'wake up'}\". Greet them in ONE short sentence and ask "
-            "what they need. Do not call any tools."
-        )
+        self._wake_greeting(phrase)
 
     def _maybe_exit_fullscreen(self) -> None:
         """Leave full screen when JARVIS goes back to sleep (if it owns it)."""
@@ -3265,6 +3289,7 @@ class JarvisLive:
                     elif _sentinel_wake:
                         self.force_wake("sentinel clap")
                         self._play_activation_sound()
+                        self._wake_greeting("sentinel")
                     else:
                         self._set_jarvis_state("OFFLINE")
                         self.ui.write_log(

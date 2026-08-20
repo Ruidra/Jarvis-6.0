@@ -46,7 +46,7 @@ CLAP_COUNT: int = int(_cfg.get("clap_count", 2))
 ## Max seconds between the first and last clap of the pattern.
 CLAP_WINDOW: float = _cfg.get("clap_window", 1.2)
 ## Seconds of silence enforced after a successful clap pattern.
-CLAP_COOLDOWN: float = _cfg.get("clap_cooldown", 1.5)
+CLAP_COOLDOWN: float = _cfg.get("clap_cooldown", 1.0)
 
 ## Seconds JARVIS stays armed waiting for the wake phrase after a clap.
 WAKE_TIMEOUT: float = _cfg.get("wake_timeout", 12.0)
@@ -65,7 +65,12 @@ WAKE_BEEP: bool = _cfg.get("wake_beep", True)
 WAKE_FULLSCREEN: bool = _cfg.get("wake_fullscreen", True)
 ## Seconds the cinematic wake flash & ripple plays before JARVIS goes
 ## full screen (gives the eye a smooth transition instead of a hard cut).
-WAKE_BOOT_DELAY: float = _cfg.get("wake_boot_delay", 0.45)
+## Lower = JARVIS appears on screen faster after the wake word.
+WAKE_BOOT_DELAY: float = _cfg.get("wake_boot_delay", 0.15)
+## Speak the wake greeting with the local offline voice (Kokoro) when available,
+## instead of waiting for a model round-trip. This makes JARVIS answer the wake
+## word within a fraction of a second. Falls back to the model voice automatically.
+WAKE_GREETING_INSTANT: bool = _cfg.get("wake_greeting_instant", True)
 
 
 def get_secret(key: str, default: str | None = None) -> str | None:

@@ -60,6 +60,12 @@ class ProsodySpeaker:
     def available(self) -> bool:
         return self._kind != "none"
 
+    @property
+    def instant(self) -> bool:
+        """True when the engine is fully offline and produces audio with no
+        network round-trip — i.e. a greeting can be spoken within milliseconds."""
+        return self._kind == "kokoro"
+
     def speak(self, text: str, prosody: dict | None = None) -> bool:
         """Speak ``text`` with ``prosody`` (e.g. {"rate":0.9,"pitch":1.1}).
 
@@ -85,11 +91,13 @@ class ProsodySpeaker:
 
     # -- Kokoro ------------------------------------------------------------ #
     def _speak_kokoro(self, text: str, prosody: dict) -> None:
-        # Kokoro's TTSPlayer accepts voice + speed; map pitch→voice choice loosely.
         from core.tts import create_tts_player
-        player = create_tts_player({"engine": "kokoro"})
-        speed = float(prosody.get("rate", 1.0)) or 1.0
-        player.speak(text, speed=speed)
+
+        # create_tts_player reads "tts_engine" / "tts_speed" (not "engine"/"speed"),
+        # and TTSPlayer.speak() takes (text) only — pass the rate via config.
+        rate = float(prosody.get("rate", 1.0)) or 1.0
+        player = create_tts_player({"tts_engine": "kokoro", "tts_speed": rate})
+        player.speak(text)
         player.stop()
 
     # -- Edge TTS ---------------------------------------------------------- #
