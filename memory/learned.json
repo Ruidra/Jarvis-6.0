@@ -95,6 +95,14 @@
       "source": "auto",
       "created": "2026-08-20",
       "updated": "2026-08-20"
+    },
+    {
+      "text": "User: currently fetching today",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-20",
+      "updated": "2026-08-20"
     }
   ],
   "corrections": [],
