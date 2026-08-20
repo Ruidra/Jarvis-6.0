@@ -79,6 +79,22 @@
       "source": "auto",
       "created": "2026-08-20",
       "updated": "2026-08-20"
+    },
+    {
+      "text": "User: currently unable to adjust the system vo",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-20",
+      "updated": "2026-08-20"
+    },
+    {
+      "text": "User: now shutting down",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-20",
+      "updated": "2026-08-20"
     }
   ],
   "corrections": [],
@@ -89,12 +105,16 @@
     "youtube_video": 4,
     "wikipedia": 1,
     "screen_process": 1,
-    "shutdown_jarvis": 3,
+    "shutdown_jarvis": 4,
     "weather_report": 1,
-    "power_tools": 2,
-    "god_mode": 1,
+    "power_tools": 4,
+    "god_mode": 2,
     "discover": 1,
-    "open_app": 1
+    "open_app": 1,
+    "computer_settings": 4,
+    "computer_control": 1,
+    "agent": 1,
+    "run_command": 1
   },
   "history": []
 }
