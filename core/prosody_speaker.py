@@ -34,6 +34,11 @@ class ProsodySpeaker:
         self._engine = None
         self._kind = "none"
         self._lock = threading.Lock()
+        # The offline Kokoro player is expensive to build (loads the ~330 MB
+        # model + JIT-compiles), so it is created once and reused. Guarded by a
+        # lock; pre-loaded in a background thread at startup (see _try_init).
+        self._kokoro_player = None
+        self._kokoro_lock = threading.Lock()
         self._try_init()
 
     def _try_init(self) -> None:
@@ -43,6 +48,11 @@ class ProsodySpeaker:
             self._engine = "kokoro"
             self._kind = "kokoro"
             logger.info("ProsodySpeaker: Kokoro TTS available")
+            # Pre-load the model now (background) so the very first wake greeting
+            # is already instant instead of paying the load cost on the hot path.
+            threading.Thread(
+                target=self._ensure_kokoro, daemon=True, name="kokoro-warmup"
+            ).start()
             return
         except Exception:
             pass
@@ -55,6 +65,28 @@ class ProsodySpeaker:
             return
         except Exception:
             logger.info("ProsodySpeaker: no local TTS engine available (will be a no-op)")
+
+    def _ensure_kokoro(self) -> bool:
+        """Build the offline Kokoro player exactly once and cache it.
+
+        Recreating the player on every call was the cause of slow wake responses:
+        each greeting reloaded the model and re-ran the JIT warmup. Returns True
+        once the cached player is ready.
+        """
+        if self._kokoro_player is not None:
+            return True
+        with self._kokoro_lock:
+            if self._kokoro_player is not None:
+                return True
+            try:
+                from core.tts import create_tts_player
+                self._kokoro_player = create_tts_player(
+                    {"tts_engine": "kokoro", "tts_speed": 1.08}
+                )
+                return True
+            except Exception as exc:  # noqa: BLE001 - voice is non-critical
+                logger.warning("Kokoro player init failed: %s", exc)
+                return False
 
     @property
     def available(self) -> bool:
@@ -91,14 +123,11 @@ class ProsodySpeaker:
 
     # -- Kokoro ------------------------------------------------------------ #
     def _speak_kokoro(self, text: str, prosody: dict) -> None:
-        from core.tts import create_tts_player
-
-        # create_tts_player reads "tts_engine" / "tts_speed" (not "engine"/"speed"),
-        # and TTSPlayer.speak() takes (text) only — pass the rate via config.
-        rate = float(prosody.get("rate", 1.0)) or 1.0
-        player = create_tts_player({"tts_engine": "kokoro", "tts_speed": rate})
-        player.speak(text)
-        player.stop()
+        if not self._ensure_kokoro():
+            return
+        # Player (and its loaded model) is cached — no per-call model reload.
+        self._kokoro_player.speak(text)
+        self._kokoro_player.stop()
 
     # -- Edge TTS ---------------------------------------------------------- #
     def _speak_edge(self, text: str, prosody: dict) -> None:
