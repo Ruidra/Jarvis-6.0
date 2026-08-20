@@ -59,6 +59,13 @@ WAKE_WORDS: list[str] = _cfg.get("wake_words", [
 WAKE_REQUIRE_CLAP: bool = _cfg.get("wake_require_clap", True)
 ## Play a short confirmation tone when the clap arms JARVIS.
 WAKE_BEEP: bool = _cfg.get("wake_beep", True)
+## When JARVIS is woken by clap + wake phrase, automatically expand the
+## interface to full screen and play a cinematic "boot" flash. Set False to
+## keep the normal window and use F11 / the "fullscreen" command instead.
+WAKE_FULLSCREEN: bool = _cfg.get("wake_fullscreen", True)
+## Seconds the cinematic wake flash & ripple plays before JARVIS goes
+## full screen (gives the eye a smooth transition instead of a hard cut).
+WAKE_BOOT_DELAY: float = _cfg.get("wake_boot_delay", 0.45)
 
 
 def get_secret(key: str, default: str | None = None) -> str | None:

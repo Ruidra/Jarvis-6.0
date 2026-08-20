@@ -508,6 +508,10 @@ class HudCanvas(QWidget):
         self._col_cur = QColor(C.PRI)        # smoothly-interpolated orb/halo color
         self._col_tgt = QColor(C.PRI)        # target color for current state
 
+        # ── Cinematic wake flash (clap + wake phrase) ──
+        self._wake_flash = 0.0               # 1.0 → 0.0 expanding boot ring
+        self._wake_t0 = 0.0
+
         self._tmr = QTimer(self)
         self._tmr.timeout.connect(self._step)
         self._tmr.start(16)
@@ -554,6 +558,19 @@ class HudCanvas(QWidget):
             self._claps.append(0.0)
             if len(self._claps) > 3:
                 self._claps = self._claps[-3:]
+        except Exception:
+            pass
+
+    def wake_feedback(self) -> None:
+        """Cinematic boot flash: a bright expanding ring + ripple burst."""
+        try:
+            self._wake_flash = 1.0
+            self._wake_t0 = time.time()
+            # a cluster of ripples for a richer "powering on" feel
+            self._claps.append(0.0)
+            self._claps.append(self.width() * 0.04)
+            if len(self._claps) > 4:
+                self._claps = self._claps[-4:]
         except Exception:
             pass
 
@@ -619,6 +636,10 @@ class HudCanvas(QWidget):
         self._gesture_fx = [g for g in self._gesture_fx if _now - g["t0"] < 1.4]
         fw_step = max(1.0, min(self.width(), self.height()))
         self._claps = [r + fw_step * 0.018 for r in self._claps if r + fw_step * 0.018 < fw_step * 0.6]
+
+        # ── cinematic wake flash decay ──
+        if self._wake_flash > 0.0:
+            self._wake_flash = max(0.0, self._wake_flash - 0.018)
 
         # ── smooth state-color transition ──
         self._col_tgt = _state_target_color(self.state, self.muted)
@@ -767,6 +788,26 @@ class HudCanvas(QWidget):
                 continue
             p.setPen(QPen(qcol(C.ACC, a), 2.5)); p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawEllipse(QRectF(cx - r, cy - r, r * 2, r * 2))
+
+        # ── cinematic wake boot-flash: bright expanding ring + screen glow ──
+        if self._wake_flash > 0.0:
+            wf = self._wake_flash  # 1 → 0
+            ring_r = fw * 0.30 + (1.0 - wf) * fw * 0.55
+            ring_a = int(235 * wf)
+            p.setPen(QPen(qcol(C.PRI, ring_a), 3 + 6 * wf))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawEllipse(QRectF(cx - ring_r, cy - ring_r, ring_r * 2, ring_r * 2))
+            # soft full-screen glow that fades out
+            glow = QRadialGradient(cx, cy, fw * (0.2 + (1.0 - wf) * 0.6))
+            glow.setColorAt(0.0, qcol(C.PRI, int(70 * wf)))
+            glow.setColorAt(1.0, qcol(C.PRI, 0))
+            p.setBrush(QBrush(glow)); p.setPen(Qt.PenStyle.NoPen)
+            p.drawRect(self.rect())
+            # "JARVIS ONLINE" label during the flash
+            p.setPen(QPen(qcol(C.PRI, ring_a), 1))
+            p.setFont(QFont(MONO, 16, QFont.Weight.Bold))
+            p.drawText(QRectF(0, cy - fw * 0.62, W, 30),
+                       Qt.AlignmentFlag.AlignCenter, "J A R V I S   O N L I N E")
 
         # ── hand-control: gesture recognition badges ──
         for g in self._gesture_fx:
@@ -2128,6 +2169,8 @@ class MainWindow(QMainWindow):
     _cam_frame_sig  = pyqtSignal(bytes)      # live camera frame → HUD area
     _clipboard_sig  = pyqtSignal(str)        # clipboard text changed (thread-safe)
     _toast_sig     = pyqtSignal(str, str)     # (icon, message) transient notification
+    _fullscreen_sig = pyqtSignal(bool)         # True=enter full screen, False=exit
+    _wake_seq_sig   = pyqtSignal(float)        # cinematic wake, then full screen (delay s)
 
     def __init__(self, face_path: str):
         super().__init__()
@@ -2274,6 +2317,8 @@ class MainWindow(QMainWindow):
         self._cam_frame_sig.connect(self._on_cam_frame)
         self._clipboard_sig.connect(self._show_clipboard_panel)
         self._toast_sig.connect(self._do_toast)
+        self._fullscreen_sig.connect(self._set_fullscreen)
+        self._wake_seq_sig.connect(self.wake_sequence)
         self._cam_stop = threading.Event()
 
         # Camera preview overlay (child of central widget, positioned in resizeEvent)
@@ -2738,6 +2783,37 @@ class MainWindow(QMainWindow):
             self.showNormal()
         else:
             self.showFullScreen()
+
+    def _set_fullscreen(self, on: bool) -> None:
+        """Slot (Qt main thread) — enter or leave full screen without toggling."""
+        try:
+            if on and not self.isFullScreen():
+                self.showFullScreen()
+            elif not on and self.isFullScreen():
+                self.showNormal()
+        except Exception:
+            pass
+
+    def mouseDoubleClickEvent(self, event):
+        """Double-click empty space to toggle full screen (new hands-free-free control)."""
+        try:
+            self._toggle_fullscreen()
+        except Exception:
+            pass
+        super().mouseDoubleClickEvent(event)
+
+    def wake_sequence(self, delay: float = 0.45) -> None:
+        """Cinematic wake: boot flash, then auto full-screen after a short delay."""
+        try:
+            self.hud.wake_feedback()
+        except Exception:
+            pass
+        d = max(0.0, float(delay))
+        if d <= 0.0:
+            self._fullscreen_sig.emit(True)
+            return
+        # Defer the full-screen cut so the user sees the flash first.
+        QTimer.singleShot(int(d * 1000), lambda: self._fullscreen_sig.emit(True))
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -3341,7 +3417,7 @@ class MainWindow(QMainWindow):
             l.setStyleSheet(f"color: {color}; background: transparent;")
             return l
 
-        lay.addWidget(_fl("[F4] Mute  ·  [F11] Fullscreen"))
+        lay.addWidget(_fl("[F4] Mute  ·  [F11] / double-click  Fullscreen"))
         lay.addStretch()
         lay.addWidget(_fl("By Shrihan", C.PRI_DIM))
         return w
@@ -3827,6 +3903,27 @@ class JarvisUI:
         """Thread-safe: show an expanding clap ripple on the HUD orb."""
         try:
             self._win.hud.clap_feedback()
+        except Exception:
+            pass
+
+    def go_fullscreen(self) -> None:
+        """Thread-safe: expand JARVIS to full screen."""
+        try:
+            self._win._fullscreen_sig.emit(True)
+        except Exception:
+            pass
+
+    def exit_fullscreen(self) -> None:
+        """Thread-safe: drop JARVIS back to a normal window."""
+        try:
+            self._win._fullscreen_sig.emit(False)
+        except Exception:
+            pass
+
+    def wake_sequence(self, delay: float = 0.45) -> None:
+        """Thread-safe: cinematic boot flash, then auto full-screen."""
+        try:
+            self._win._wake_seq_sig.emit(float(delay))
         except Exception:
             pass
 

@@ -92,6 +92,7 @@ from core.observability import metrics as _metrics
 from config import (
     CLAP_ENABLED, CLAP_SENSITIVITY, CLAP_COUNT, CLAP_WINDOW, CLAP_COOLDOWN,
     WAKE_TIMEOUT, WAKE_WORDS, WAKE_REQUIRE_CLAP, WAKE_BEEP,
+    WAKE_FULLSCREEN, WAKE_BOOT_DELAY,
 )
 from core.wake import WakeEngine
 from core.emotion_engine import EmotionEngine
@@ -1277,6 +1278,7 @@ class JarvisLive:
                     self._wake_engine.disarm()
                 self._cancel_ready_timeout()
                 self._set_jarvis_state("OFFLINE")
+                self._maybe_exit_fullscreen()
                 self.ui.write_log(
                     f"SYS: Asleep — clap {CLAP_COUNT}x then say \"wake up\""
                 )
@@ -1293,6 +1295,20 @@ class JarvisLive:
                 self.ui.write_log("SYS: God mode disabled")
                 self.speak("God mode disabled, sir.")
                 return
+
+        # ── Full-screen / window control (also auto-triggered on wake) ──
+        if any(w in t for w in ("full screen", "fullscreen", "full screen mode", "maximize", "projector", "cinema")):
+            self.ui.go_fullscreen()
+            self.ui.write_log("SYS: Full screen ON")
+            if self._jarvis_state in ("LISTENING", "SPEAKING"):
+                self.speak("Full screen engaged, sir.")
+            return
+        if any(w in t for w in ("exit fullscreen", "exit full screen", "window mode", "minimize screen", "leave fullscreen", "normal screen")):
+            self.ui.exit_fullscreen()
+            self.ui.write_log("SYS: Full screen OFF")
+            if self._jarvis_state in ("LISTENING", "SPEAKING"):
+                self.speak("Back to window mode, sir.")
+            return
 
         if not self._loop or not self.session:
             return
@@ -1425,11 +1441,34 @@ class JarvisLive:
         self._set_jarvis_state("LISTENING")
         _metrics.inc("wake_confirmed")
         self.ui.write_log(f"[WAKE] \"{phrase or 'wake up'}\" — JARVIS online")
+        # ── Cinematic wake: HUD boot-flash, then auto full-screen ────────────
+        if WAKE_FULLSCREEN:
+            try:
+                self.ui.wake_sequence(delay=WAKE_BOOT_DELAY)
+            except Exception as _e:
+                print(f"[WAKE] fullscreen trigger failed: {_e}")
+                try:
+                    self.ui.go_fullscreen()
+                except Exception:
+                    pass
+            self.ui.toast("⛶", "JARVIS ONLINE — full screen")
+        else:
+            try:
+                self.ui.wake_sequence(delay=0.0)
+            except Exception:
+                pass
         self.speak(
             "[WAKE] The user just woke you by clapping and saying "
             f"\"{phrase or 'wake up'}\". Greet them in ONE short sentence and ask "
             "what they need. Do not call any tools."
         )
+
+    def _maybe_exit_fullscreen(self) -> None:
+        """Leave full screen when JARVIS goes back to sleep (if it owns it)."""
+        try:
+            self.ui.exit_fullscreen()
+        except Exception:
+            pass
 
     def force_wake(self, reason: str = "manual") -> None:
         """Wake JARVIS immediately (sentinel launch, dashboard, typed command)."""
@@ -1461,6 +1500,7 @@ class JarvisLive:
                 self._wake_engine.disarm()
             self._set_jarvis_state("OFFLINE")
             self.ui.write_log("SYS: No wake phrase heard — back to sleep")
+            self._maybe_exit_fullscreen()
 
     def _set_jarvis_state(self, state: str):
         self._jarvis_state = state
