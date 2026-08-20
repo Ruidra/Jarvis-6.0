@@ -27,11 +27,10 @@ for _s in (_sys_utf8.stdout, _sys_utf8.stderr):
 del _sys_utf8, _s
 
 # ── Centralized logging (rotating file + console) ─────────────────────────────
-import sys as _sys
 from pathlib import Path as _Path
 from core.logging_setup import setup_logging
 setup_logging(log_dir=_Path(__file__).resolve().parent / "logs")
-import core.observability  # wires metrics into the event bus (safe, no threads started)
+import core.observability  # noqa: F401  (side-effect: wires metrics into the event bus)
 from core.plugin_registry import PluginRegistry
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -66,7 +65,6 @@ from actions.screen_processor  import _capture_camera, _capture_screen
 from actions.face_recognition  import face_recognize
 from actions.youtube_video     import youtube_video
 from actions.desktop           import desktop_control
-from actions.browser_control   import browser_control
 from actions.file_controller   import file_controller
 from actions.code_helper       import code_helper
 from actions.dev_agent         import dev_agent
@@ -80,14 +78,14 @@ from actions.background_monitor import (
     add_monitor, remove_monitor, list_monitors, check_all as monitor_check_all,
 )
 from actions.web_search        import _news as _fetch_news_sync
-from actions.timer              import timer as timer_action, get_manager as get_timer_manager
+from actions.timer              import timer as timer_action
 from actions.notes              import notes as notes_action
 from actions.recall             import recall_memory
 from actions.workflow           import workflow as workflow_action
 from actions.network_toolkit    import network_toolkit as network_toolkit_action
 from actions.system_optimizer   import system_optimizer as system_optimizer_action
 from actions.power_tools         import power_tools as power_tools_action
-from core.agent_manager         import dispatch as agent_dispatch, orchestrate as agent_orchestrate, run_mission as agent_run_mission, list_agents, classify_task
+from core.agent_manager         import orchestrate as agent_orchestrate, run_mission as agent_run_mission, list_agents
 from memory.config_manager     import get_brief_enabled, get_god_mode, set_god_mode
 from core.event_bus import bus
 from core.observability import metrics as _metrics
@@ -96,7 +94,6 @@ from config import (
     WAKE_TIMEOUT, WAKE_WORDS, WAKE_REQUIRE_CLAP, WAKE_BEEP,
 )
 from core.wake import WakeEngine
-from core.self_healing import llm_replanner_factory
 from core.emotion_engine import EmotionEngine
 from core.learning import learner as _learner
 from core.fast_cache import cache as _fast_cache
@@ -105,6 +102,9 @@ from core.self_improve import improver as _improver
 from core import personas as _personas
 from core import focus_mode as _focus
 from core import goals as _goals
+
+import logging
+logger = logging.getLogger("jarvis")
 
 
 def get_base_dir():
@@ -1812,7 +1812,6 @@ class JarvisLive:
 
         _max_retries = 3
         _attempt = 0
-        _original_args = dict(args)
 
         while True:
             try:
@@ -2770,11 +2769,10 @@ class JarvisLive:
 
         # JARVIS 6.1 — warm, mood-aware day check-in baked into the greeting
         try:
-            mood = self._emotion_engine.current_mood()
             entries = self._emotion_engine._journal.recent(days=2) if self._emotion_engine._journal else []
             recent_feel = entries[-1]["dominant"] if entries else ""
         except Exception:
-            mood, recent_feel = "neutral", ""
+            recent_feel = ""
         checkin_clause = ""
         if recent_feel and recent_feel in ("sad", "angry", "anxious", "tired", "confused"):
             checkin_clause = (
@@ -2893,10 +2891,10 @@ class JarvisLive:
                 feel = ""
             if feel in ("sad", "angry", "anxious", "tired", "confused"):
                 cue = (f"The user seemed {feel} recently. Gently ask how they're doing "
-                       f"now and offer a little encouragement — keep it to 1-2 sentences.")
+                       "now and offer a little encouragement — keep it to 1-2 sentences.")
             else:
-                cue = (f"Ask the user, in one friendly sentence, how their day is going "
-                       f"so far. Keep it to 1-2 sentences.")
+                cue = ("Ask the user, in one friendly sentence, how their day is going "
+                       "so far. Keep it to 1-2 sentences.")
             prompt = (
                 f"[PROACTIVE_CHECK] {cue} Address the user as {name}. "
                 f"Do not call any tools. Be natural and caring."
@@ -3039,7 +3037,7 @@ class JarvisLive:
                                 turns={"parts": [{"text": msg}]},
                                 turn_complete=True,
                             )
-                            self.ui.write_log(f"SYS: Monitor alert sent.")
+                            self.ui.write_log("SYS: Monitor alert sent.")
                             await asyncio.sleep(6)   # gap between consecutive alerts
                     except Exception as e:
                         print(f"[Monitor] ⚠️ Background check error: {e}")

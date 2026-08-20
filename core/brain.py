@@ -28,7 +28,7 @@ import logging
 import re
 import threading
 import time
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger("jarvis.brain")
 
