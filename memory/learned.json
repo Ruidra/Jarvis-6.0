@@ -1,14 +1,6 @@
 {
   "facts": [
     {
-      "text": "User loves pizza",
-      "category": "preferences",
-      "confidence": 0.95,
-      "source": "explicit",
-      "created": "2026-08-19",
-      "updated": "2026-08-20"
-    },
-    {
       "text": "User: fetching today",
       "category": "identity",
       "confidence": 0.8,
@@ -159,6 +151,14 @@
       "source": "auto",
       "created": "2026-08-20",
       "updated": "2026-08-20"
+    },
+    {
+      "text": "User loves pizza",
+      "category": "preferences",
+      "confidence": 0.95,
+      "source": "explicit",
+      "created": "2026-08-19",
+      "updated": "2026-08-21"
     }
   ],
   "corrections": [],

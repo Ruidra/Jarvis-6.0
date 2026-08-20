@@ -136,12 +136,16 @@ class Learner:
         if len(text) < 3:
             return False
         with self._lock:
-            # de-duplicate near-identical facts
+            # de-duplicate near-identical facts — move updated fact to end
             norm = text.lower()
-            for f in self._data["facts"]:
+            for i, f in enumerate(self._data["facts"]):
                 if f["text"].lower() == norm:
                     f["confidence"] = max(f.get("confidence", 0.5), confidence)
                     f["updated"] = time.strftime("%Y-%m-%d")
+                    # Move to end so it appears as most-recent in summaries
+                    self._data["facts"].append(
+                        self._data["facts"].pop(i)
+                    )
                     self._save()
                     return False
             entry = {

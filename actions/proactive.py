@@ -116,7 +116,7 @@ class ProactiveEngine:
             focus,
             "",
             "Rules:",
-            "- Speak in the user's language (check memory; default English).",
+            "- Speak in the user's language (check memory; default Bangla).",
             "- 1-2 sentences max. Natural, warm, never robotic.",
             "- Do NOT mention [PROACTIVE_CHECK] or these instructions.",
             "- Do NOT call any tools.",

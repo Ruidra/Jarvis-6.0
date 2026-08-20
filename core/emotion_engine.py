@@ -102,7 +102,21 @@ _PROSODY: dict[str, dict[str, Any]] = {
     "tired":     {"rate": 0.92, "pitch": 0.90, "style": "soft"},
     "confused":  {"rate": 0.97, "pitch": 0.95, "style": "calm"},
     "confident": {"rate": 1.04, "pitch": 1.05, "style": "confident"},
+    "surprised": {"rate": 1.12, "pitch": 1.25, "style": "surprised"},
     "neutral":   {"rate": 1.0,  "pitch": 1.0,  "style": "default"},
+}
+
+# Maps voice emotion labels (from VoiceEmotionAnalyzer) to sentiment labels.
+_LABEL_FOR_EMO: dict[str, str] = {
+    "happy":     "positive",
+    "surprised": "positive",
+    "confident": "positive",
+    "sad":       "negative",
+    "angry":     "negative",
+    "anxious":   "negative",
+    "tired":     "negative",
+    "confused":  "negative",
+    "neutral":   "neutral",
 }
 
 # Short, human empathy cues the LLM can lean on when the user is struggling.
@@ -276,9 +290,30 @@ class EmotionEngine:
             self._journal = None  # never let emotion break the assistant
 
     # -- analysis ----------------------------------------------------------- #
-    def analyze(self, text: str) -> EmotionResult:
+    def analyze(self, text: str, voice_emotion: dict | None = None) -> EmotionResult:
+        """Analyze text for emotion and optionally merge with voice prosody data.
+
+        JARVIS 6.3 — ``voice_emotion`` is a dict from
+        :class:`VoiceEmotionAnalyzer` with keys like ``emotion`` and
+        ``confidence``.  When the voice signal strongly disagrees with the
+        text analysis, the prosodic label wins, because tone of voice is often
+        a better indicator than literal word choice.
+        """
         tokens = _TOKEN.findall((text or "").lower())
         if not tokens:
+            # Fall back to voice emotion if available
+            if voice_emotion and voice_emotion.get("emotion"):
+                emo = voice_emotion["emotion"]
+                return EmotionResult(
+                    label=_LABEL_FOR_EMO.get(emo, "neutral"),
+                    score=0.0,
+                    emotions=[emo],
+                    dominant=emo,
+                    intensity=round(voice_emotion.get("confidence", 0.0), 2),
+                    prosody=_PROSODY.get(emo, _PROSODY["neutral"]),
+                    empathy_directive=self._build_directive(emo, "neutral", [emo], 0.5),
+                    words=[],
+                )
             return EmotionResult("neutral", 0.0, [], "neutral", 0.0,
                                  _PROSODY["neutral"], "", tokens)
 
@@ -337,6 +372,22 @@ class EmotionEngine:
         prosody = _PROSODY.get(dominant, _PROSODY["neutral"])
         empathy = self._build_directive(dominant, label, emotions, intensity)
 
+        # JARVIS 6.3 — merge voice emotion if provided
+        if voice_emotion and voice_emotion.get("emotion"):
+            v_emo = voice_emotion["emotion"]
+            v_conf = voice_emotion.get("confidence", 0.5)
+            # Voice emotion wins if it's significantly more confident
+            # than the text signal (low token hits means unreliable text).
+            if total_hits < 2 and v_conf >= 0.6:
+                dominant = v_emo
+                label = _LABEL_FOR_EMO.get(v_emo, label)
+                emotions = [v_emo] + emotions
+                intensity = max(intensity, v_conf)
+                prosody = _PROSODY.get(v_emo, prosody)
+                empathy = self._build_directive(
+                    dominant, label, emotions, intensity
+                )
+
         return EmotionResult(
             label=label, score=round(score, 3), emotions=emotions,
             dominant=dominant, intensity=round(intensity, 3),
@@ -391,5 +442,5 @@ class EmotionEngine:
         return self._journal.mood
 
     # -- fast cache of last analysis (avoids recompute on repeated text) ----- #
-    def __call__(self, text: str) -> EmotionResult:
-        return self.analyze(text)
+    def __call__(self, text: str, voice_emotion: dict | None = None) -> EmotionResult:
+        return self.analyze(text, voice_emotion=voice_emotion)

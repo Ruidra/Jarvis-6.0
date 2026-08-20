@@ -97,6 +97,9 @@ from config import (
 )
 from core.wake import WakeEngine
 from core.emotion_engine import EmotionEngine
+from core.voice_emotion import VoiceEmotionAnalyzer
+from core.language_detector import LanguageDetector
+from core.context_compressor import ContextCompressor
 from core.learning import learner as _learner
 from core.fast_cache import cache as _fast_cache
 from core.prosody_speaker import ProsodySpeaker
@@ -1260,6 +1263,31 @@ class JarvisLive:
         self._session_turns = 0            # count of user/assistant exchanges
         self._greeted_today = False
 
+        # JARVIS 6.3 — Voice-based emotion detection (prosody analysis)
+        self._voice_emotion = VoiceEmotionAnalyzer()
+        self._collecting_voice = False     # accumulate user PCM for voice emotion
+
+        # JARVIS 6.3 — Silent language memory: auto-detect spoken language on first use
+        self._lang_detector = LanguageDetector()
+        self._lang_detected = False        # set True once first language is stored
+
+        # JARVIS 6.3 — Unlimited sessions: sliding-window context compression
+        self._context_compressor = ContextCompressor(
+            max_chars=8000, compression_interval=30,
+        )
+
+        # Lightweight LLM wrapper for context summarisation (extractive fallback
+        # if the LLM call fails)
+        class _LLMSummariser:
+            def summarize(self, text: str, max_tokens: int = 500) -> str:
+                from core.llm_client import call_llm_text
+                prompt = (
+                    f"Summarise the following conversation into a concise "
+                    f"paragraph ({max_tokens} tokens max):\n\n{text}"
+                )
+                return call_llm_text(prompt, max_tokens=max_tokens)
+        self._llm = _LLMSummariser()
+
         # JARVIS 6.1 — emotion-tuned local voice for notifications/errors
         try:
             self._prosody = ProsodySpeaker()
@@ -1566,6 +1594,23 @@ class JarvisLive:
             except Exception:
                 pass
 
+    async def _inject_context_summary(self, summary: str) -> None:
+        """Inject a compressed context summary into the Gemini Live session.
+
+        JARVIS 6.3 — Called after :meth:`ContextCompressor.maybe_compress`
+        produces a summary, so the session never exceeds its token budget
+        even on very long conversations (unlimited sessions).
+        """
+        if not self.session or not summary:
+            return
+        try:
+            await self.session.send_client_content(
+                turns={"parts": [{"text": summary}]},
+                turn_complete=True,
+            )
+        except Exception as exc:
+            logger.debug("context summary injection failed: %s", exc)
+
     def speak(self, text: str):
         if not self._loop or not self.session:
             return
@@ -1690,7 +1735,7 @@ class JarvisLive:
         # Identity injection — overrides any hardcoded name in prompt.txt
         _addr = (f"ADDRESS: Always call the user '{_user_name}'."
                  if _user_name
-                 else "ADDRESS: When speaking Turkish → always say \"efendim\". "
+                 else "ADDRESS: When speaking Bangla → always say \"স্যার\". "
                       "When speaking English → say \"sir\". Never mix languages.")
         identity_ctx = (
             f"[IDENTITY]\n"
@@ -1827,16 +1872,25 @@ class JarvisLive:
         except Exception:
             return ""
 
-    def analyze_and_apply_emotion(self, text: str) -> None:
-        """Analyze a user utterance for emotion, update mood journal + last emotion."""
-        if not text:
-            return
+    def analyze_and_apply_emotion(
+        self, text: str, voice_emotion: dict | None = None
+    ) -> object | None:
+        """Analyze a user utterance for emotion, update mood journal + last emotion.
+
+        JARVIS 6.3 — if ``voice_emotion`` (from :class:`VoiceEmotionAnalyzer`)
+        is provided, the prosodic label is merged with the text-based analysis
+        so both channels contribute to the perceived emotion.
+        """
+        if not text and not voice_emotion:
+            return None
         try:
-            res = self._emotion_engine.analyze(text)
+            res = self._emotion_engine.analyze(text, voice_emotion=voice_emotion)
             self._last_emotion = res
             self._emotion_engine.apply_user_emotion(res, user_name=self._user_name or "Boss")
+            return res
         except Exception as exc:  # emotion must never break the assistant
             logger.warning("emotion analysis failed: %s", exc)
+            return None
 
     def _emotion_prefix_for_text(self, text: str) -> str | None:
         """For text input, prepend a short emotion hint so the model adapts instantly."""
@@ -2603,6 +2657,11 @@ class JarvisLive:
                 # Asleep/armed → audio stays local: clap + wake-phrase only.
                 self._process_wake_audio(data)
             else:
+                # JARVIS 6.3 — accumulate user PCM for voice emotion analysis
+                try:
+                    self._voice_emotion.add_chunk(data)
+                except Exception:
+                    pass
                 loop.call_soon_threadsafe(
                     self.out_queue.put_nowait,
                     {"data": data, "mime_type": "audio/pcm"}
@@ -2666,6 +2725,30 @@ class JarvisLive:
                             if txt:
                                 in_buf.append(txt)
                                 self._last_user_speech = time.monotonic()
+                                self._session_turns += 1
+
+                                # JARVIS 6.3 — Silent language memory: detect language
+                                # from speech on first use, then persist to memory.
+                                if not self._lang_detected:
+                                    try:
+                                        lang_code = self._lang_detector.detect(txt)
+                                        if lang_code:
+                                            self._lang_detected = True
+                                            self.ui.write_log(
+                                                f"SYS: Auto-detected language: {lang_code}"
+                                            )
+                                            mem = self._memory.load_memory(
+                                                self.user_name
+                                            )
+                                            mem.setdefault("identity", {})[
+                                                "language"
+                                            ] = lang_code
+                                            self._memory.save_memory(
+                                                self.user_name, mem
+                                            )
+                                    except Exception:
+                                        pass
+
                                 # JARVIS 6.1 — feel the user's emotion + learn from it
                                 try:
                                     self.analyze_and_apply_emotion(txt)
@@ -2685,6 +2768,7 @@ class JarvisLive:
                                 out_buf = []
                                 continue
 
+                            # JARVIS 6.3 — Voice emotion analysis from prosody
                             full_in = " ".join(in_buf).strip()
                             if full_in:
                                 self.ui.write_log(f"You: {full_in}")
@@ -2695,6 +2779,20 @@ class JarvisLive:
                                         "text": full_in,
                                         "ts": datetime.now().isoformat(),
                                     }))
+
+                                # Analyze voice emotion from accumulated PCM
+                                try:
+                                    voice_emo = self._voice_emotion.analyze()
+                                    if voice_emo and voice_emo.get("emotion"):
+                                        self._last_emotion = (
+                                            self.analyze_and_apply_emotion(
+                                                full_in,
+                                                voice_emotion=voice_emo,
+                                            )
+                                        )
+                                except Exception:
+                                    pass
+
                                 if self._jarvis_state in ("LISTENING", "LOCKED"):
                                     _sleep_phrases = [
                                         "sleep", "go to sleep", "goodnight",
@@ -2719,12 +2817,30 @@ class JarvisLive:
                                         "text": full_out,
                                         "ts": datetime.now().isoformat(),
                                     }))
-                                # JARVIS 6.1 — learn from what was just said
+                                 # JARVIS 6.1 — learn from what was just said
                                 try:
                                     self.observe_learning("", full_out)
                                 except Exception:
                                     pass
                             out_buf = []
+
+                            # JARVIS 6.3 — Feed turn to context compressor for
+                            # sliding-window compression (unlimited sessions).
+                            if full_in and full_out:
+                                self._context_compressor.add(f"User: {full_in}")
+                                self._context_compressor.add(
+                                    f"{self._asst_name}: {full_out}"
+                                )
+                                _summary = self._context_compressor.maybe_compress(
+                                    llm_client=self._llm
+                                )
+                                if _summary and self.session:
+                                    asyncio.create_task(
+                                        self._inject_context_summary(_summary)
+                                    )
+
+                            # Reset voice emotion buffer for the next turn
+                            self._voice_emotion.reset()
 
                             # JARVIS 6.1 — emotion-tuned reply (opt-in). Speak the tagged
                             # reply with the local voice and skip Gemini's native audio.
@@ -3033,7 +3149,7 @@ class JarvisLive:
         memory = load_memory()
         lang_entry = memory.get("identity", {}).get("language", {})
         lang = (lang_entry.get("value", "") if isinstance(lang_entry, dict) else str(lang_entry)).strip()
-        lang = lang or "English"
+        lang = lang or "Bangla"
 
         convo = "\n".join(log[-40:])   # cap at last 40 turns to stay within token budget
         prompt = (
@@ -3138,7 +3254,7 @@ class JarvisLive:
                         alerts = await asyncio.to_thread(monitor_check_all)
                         memory = load_memory()
                         lang_e = memory.get("identity", {}).get("language", {})
-                        lang   = (lang_e.get("value", "") if isinstance(lang_e, dict) else str(lang_e)).strip() or "English"
+                        lang   = (lang_e.get("value", "") if isinstance(lang_e, dict) else str(lang_e)).strip() or "Bangla"
                         for alert in alerts:
                             msg = (
                                 f"{alert}\n\n"

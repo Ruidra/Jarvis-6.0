@@ -1,5 +1,5 @@
 {
-  "mood": "neutral",
+  "mood": "anxious",
   "entries": [
     {
       "ts": 1787154271.330873,
@@ -1916,6 +1916,105 @@
       "dominant": "neutral",
       "label": "neutral",
       "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787251767.8552516,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787251770.9494216,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787251829.015578,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787251834.8693655,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787251838.6383185,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "anxious",
+      "label": "negative",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787252757.3910666,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787252762.5352008,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787252765.7942204,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "anxious",
+      "label": "negative",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787253156.9492962,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787253161.1757772,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787253164.3599162,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "anxious",
+      "label": "negative",
+      "intensity": 0.5,
       "note": ""
     }
   ]

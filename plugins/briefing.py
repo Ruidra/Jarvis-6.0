@@ -122,9 +122,9 @@ def handle(intent: str, args: dict, ctx: dict) -> str:
     sys = (
         "You are JARVIS composing a concise, premium personal briefing. "
         "Be brief, structured, and natural. Use short paragraphs. "
-        "Prefer bullets. Address the user as 'sir' (English) or 'efendim' (Turkish) — "
+        "Prefer bullets. Address the user as 'স্যার' (Bangla) or 'sir' (English) — "
         "but keep the entire briefing in the SAME language as the user's last message "
-        "(you'll see it in the transcript). If unknown, default to English."
+        "(you'll see it in the transcript). If unknown, default to Bangla."
     )
     prompt = (
         f"Compose a {'morning' if mode == 'morning' else 'evening' if mode == 'evening' else 'full'} briefing.\n\n"

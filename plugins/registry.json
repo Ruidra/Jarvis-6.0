@@ -64,12 +64,13 @@
       ]
     },
     "plugin_manager": {
-      "description": "Manage Jarvis plugins. List installed plugins, or enable/disable a specific plugin by name. Use when the user says 'list plugins', 'what plugins do you have', 'enable plugin X', or 'disable plugin X'.",
+      "description": "Manage Jarvis plugins. List installed plugins (including any BROKEN ones and why they failed), or enable/disable a specific plugin by name. Use when the user says 'list plugins', 'what plugins do you have', 'show broken plugins', 'enable plugin X', or 'disable plugin X'.",
       "triggers": [
         "list plugins",
         "enable plugin",
         "disable plugin",
-        "manage plugin"
+        "manage plugin",
+        "broken plugins"
       ]
     },
     "markets": {
@@ -141,5 +142,6 @@
         "what do you remember"
       ]
     }
-  }
+  },
+  "broken": {}
 }
