@@ -1,645 +1,6 @@
 {
-  "mood": "anxious",
+  "mood": "surprised",
   "entries": [
-    {
-      "ts": 1787154271.330873,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154286.4285755,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154336.9311125,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154353.7681139,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154378.163952,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154378.5568936,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154378.9031444,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154379.1206086,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154379.241295,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154379.5874043,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154379.7779806,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154379.9471326,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154380.1449852,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154380.256943,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154380.4534726,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154380.6781242,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154380.842008,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154381.0144324,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154381.190065,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154381.357048,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154381.5573835,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154381.6872878,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154381.8659086,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154382.0920205,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154382.125364,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154431.6168697,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787154641.6715345,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "sad",
-      "label": "negative",
-      "intensity": 0.71,
-      "note": ""
-    },
-    {
-      "ts": 1787154642.675398,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787154642.7407882,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "anxious",
-      "label": "negative",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787155168.865242,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "sad",
-      "label": "negative",
-      "intensity": 0.71,
-      "note": ""
-    },
-    {
-      "ts": 1787155169.5977414,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787155169.659676,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "anxious",
-      "label": "negative",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787155219.4916737,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "sad",
-      "label": "negative",
-      "intensity": 0.71,
-      "note": ""
-    },
-    {
-      "ts": 1787155219.5611367,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787155219.6183558,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "anxious",
-      "label": "negative",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787155272.0394473,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "sad",
-      "label": "negative",
-      "intensity": 0.71,
-      "note": ""
-    },
-    {
-      "ts": 1787155273.103611,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787155273.165872,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "anxious",
-      "label": "negative",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787155341.2458375,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "sad",
-      "label": "negative",
-      "intensity": 0.71,
-      "note": ""
-    },
-    {
-      "ts": 1787155342.2281723,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787155342.2831314,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "anxious",
-      "label": "negative",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787156714.2871306,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "sad",
-      "label": "negative",
-      "intensity": 0.71,
-      "note": ""
-    },
-    {
-      "ts": 1787156715.24577,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787156715.3066244,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "anxious",
-      "label": "negative",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787156778.4260247,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "sad",
-      "label": "negative",
-      "intensity": 0.71,
-      "note": ""
-    },
-    {
-      "ts": 1787156779.3860269,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787156779.4651105,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "anxious",
-      "label": "negative",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787158521.3086746,
-      "date": "2026-08-19",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.5,
-      "note": ""
-    },
-    {
-      "ts": 1787196373.0464478,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196385.5214362,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196385.750136,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196385.9130025,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196386.0809567,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196386.186829,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196395.3175561,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196575.9630835,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196576.378967,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196576.5230987,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196576.9633622,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196577.0948384,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196577.465135,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196602.409846,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196602.572812,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196602.9201443,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196603.151766,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196603.202934,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196633.5936327,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196763.2121973,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196809.3315501,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "happy",
-      "label": "positive",
-      "intensity": 0.68,
-      "note": ""
-    },
-    {
-      "ts": 1787196825.668114,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787196825.8046973,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
     {
       "ts": 1787196825.980728,
       "date": "2026-08-20",
@@ -2978,6 +2339,1266 @@
       "dominant": "anxious",
       "label": "negative",
       "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787290398.5631132,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290398.8194366,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290398.8728595,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290399.0702126,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290399.288315,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290399.4202163,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290399.6395745,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290399.8384147,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290400.1891842,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290400.4133265,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290400.5193837,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290400.7571416,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290400.975056,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290401.10548,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290401.289455,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290401.4992821,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290401.6241014,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290401.82539,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290402.0351613,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290402.1842284,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290402.3872495,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290402.633589,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290402.7464292,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290402.9495473,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290403.1766152,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290403.3015125,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290403.5064046,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290403.8494966,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290404.0563538,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290404.112685,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290426.761547,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290448.040562,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290448.2646933,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290448.549712,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290448.9939146,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290449.1785853,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290449.4179392,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290449.5306125,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290449.7478492,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290449.9549804,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290450.0796814,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290450.3090622,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290450.4865534,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290450.6498618,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290451.067723,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290451.1690211,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290451.4009526,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290451.607784,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290451.7171648,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290451.9422824,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290452.1492195,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290452.2735348,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290452.4734325,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290452.7051919,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290452.8624845,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290453.0464716,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290453.4433224,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290453.6884148,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290453.8401344,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290453.9701087,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290454.214229,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290454.4193702,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290454.5093358,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290454.7641687,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290454.931173,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290455.2394345,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290455.4601645,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290455.5875778,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290455.7992728,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290455.8627446,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290478.8684392,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "surprised",
+      "label": "positive",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290482.699092,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290482.8701582,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290483.0101423,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290483.2442813,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290483.4091356,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290483.7906017,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290483.9975386,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290484.1417189,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290484.3446052,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290484.5201256,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290484.6932023,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290484.9125106,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290485.083044,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290485.2488492,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290485.4511685,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290485.6145403,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290485.8230376,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290486.0444808,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290486.202349,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290486.363242,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290486.553226,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290486.740307,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290486.8957646,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290487.3506646,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290487.4689128,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290488.4525442,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290488.5813334,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290488.8335729,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290489.0966985,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290489.5216892,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290489.6880398,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290491.043819,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290491.2059107,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290511.2406688,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290511.4896517,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290511.7015367,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290511.8324504,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290512.0124843,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290512.2376397,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290512.6136603,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290512.8148715,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290512.9173267,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290513.4025574,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290513.4924877,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290513.7214854,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290513.9164476,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290514.0618765,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290514.3147962,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290514.4558249,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290514.6416214,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290514.8557057,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290515.0961542,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290515.1951752,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290515.437089,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290515.603897,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290515.775106,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290516.0341604,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290516.1580048,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290516.3162384,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290516.5282466,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290516.675924,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290516.8997743,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290517.0982862,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290517.4717937,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290517.5352273,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290517.7859547,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290598.533555,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290608.6436298,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787290617.306601,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "surprised",
+      "label": "positive",
+      "intensity": 0.0,
       "note": ""
     }
   ]
