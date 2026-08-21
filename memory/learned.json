@@ -212,7 +212,9 @@
     "agent": 2,
     "run_command": 1,
     "system_status": 1,
-    "face_recognize": 1
+    "face_recognize": 1,
+    "learn": 2,
+    "plugin_manager": 1
   },
   "history": []
 }
