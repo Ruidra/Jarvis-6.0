@@ -1,4 +1,4 @@
-"""Tests for JARVIS 6.1 part 3: personas + self-improvement."""
+"""Tests for JARVIS 7.0 part 3: personas + self-improvement."""
 
 import sys
 from pathlib import Path

@@ -293,7 +293,7 @@ class EmotionEngine:
     def analyze(self, text: str, voice_emotion: dict | None = None) -> EmotionResult:
         """Analyze text for emotion and optionally merge with voice prosody data.
 
-        JARVIS 6.3 — ``voice_emotion`` is a dict from
+        JARVIS 7.0 — ``voice_emotion`` is a dict from
         :class:`VoiceEmotionAnalyzer` with keys like ``emotion`` and
         ``confidence``.  When the voice signal strongly disagrees with the
         text analysis, the prosodic label wins, because tone of voice is often
@@ -372,7 +372,7 @@ class EmotionEngine:
         prosody = _PROSODY.get(dominant, _PROSODY["neutral"])
         empathy = self._build_directive(dominant, label, emotions, intensity)
 
-        # JARVIS 6.3 — merge voice emotion if provided
+        # JARVIS 7.0 — merge voice emotion if provided
         if voice_emotion and voice_emotion.get("emotion"):
             v_emo = voice_emotion["emotion"]
             v_conf = voice_emotion.get("confidence", 0.5)

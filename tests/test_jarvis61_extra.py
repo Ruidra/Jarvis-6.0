@@ -1,4 +1,4 @@
-"""Tests for JARVIS 6.1 extras: teach plugin, prosody speaker, day check-in."""
+"""Tests for JARVIS 7.0 extras: teach plugin, prosody speaker, day check-in."""
 
 import asyncio
 import sys

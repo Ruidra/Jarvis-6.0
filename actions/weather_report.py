@@ -1,5 +1,5 @@
 """
-Weather Report action — JARVIS 6.3.
+Weather Report action — JARVIS 7.0.
 
 Uses the OpenWeatherMap API for current conditions when an API key is
 configured.  Falls back to the previous behaviour (Google search via
@@ -129,7 +129,7 @@ def weather_action(
     city = parameters.get("city") or parameters.get("location")
     when = parameters.get("time", "today")
 
-    # JARVIS 6.3 — if no city given, look in memory for the user's home city
+    # JARVIS 7.0 — if no city given, look in memory for the user's home city
     if not city or not isinstance(city, str) or not city.strip():
         city = _get_home_city(user_name)
 
@@ -141,7 +141,7 @@ def weather_action(
     city = city.strip()
     when = (when or "today").strip()
 
-    # Attempt API-based weather first (JARVIS 6.3)
+    # Attempt API-based weather first (JARVIS 7.0)
     api_result = _fetch_from_api(city)
     if api_result:
         _log(api_result, player)

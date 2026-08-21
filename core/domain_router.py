@@ -1,5 +1,5 @@
 """
-JARVIS Deep Domain Integration Router — JARVIS 6.4.
+JARVIS Deep Domain Integration Router — JARVIS 7.0.
 
 Provides seamless, zero-friction integration with common systems by
 auto-detecting what's available on the local network / user accounts and

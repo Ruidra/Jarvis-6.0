@@ -130,7 +130,7 @@ class SelfImprover:
         with self._lock:
             return len(self._data.get("lessons", []))
 
-    # ── JARVIS 6.4 — Autonomous performance optimisation ─────────────────────
+    # ── JARVIS 7.0 — Autonomous performance optimisation ─────────────────────
     def optimise(self, session_metrics: dict | None = None) -> list[str]:
         """Analyse recent performance and suggest/ apply optimisations.
 

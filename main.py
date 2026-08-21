@@ -1199,7 +1199,7 @@ TOOL_DECLARATIONS = [
     {
         "name": "autonomy",
         "description": (
-            "JARVIS 6.4 Autonomous Planning Engine. For complex multi-step goals that "
+            "JARVIS 7.0 Autonomous Planning Engine. For complex multi-step goals that "
             "require independent planning and execution. Actions: 'plan' (decompose goal "
             "into ordered steps — pass 'goal'), 'execute' (run a specific step by id), "
             "'progress' (get current status), 'complete' (mark plan done), 'abort' "
@@ -1219,7 +1219,7 @@ TOOL_DECLARATIONS = [
     {
         "name": "domain",
         "description": (
-            "JARVIS 6.4 Deep Domain Integration Router. Interact with smart home "
+            "JARVIS 7.0 Deep Domain Integration Router. Interact with smart home "
             "(Home Assistant / Google Home / Matter), enterprise (Slack / Teams / "
             "Notion / GSuite), health (Fitbit / Apple Health / Garmin), and legal "
             "(Clio / MyCase) systems. Actions: 'status' (show integration readiness), "
@@ -1242,7 +1242,7 @@ TOOL_DECLARATIONS = [
     {
         "name": "perceive",
         "description": (
-            "JARVIS 6.4 Real-time Multimodal Perception. Get a fused snapshot of the "
+            "JARVIS 7.0 Real-time Multimodal Perception. Get a fused snapshot of the "
             "current environment: microphone audio state (addressed speech, clap "
             "detection, energy), vision (screen OCR, face detection, gestures, active "
             "window), system resources (CPU, RAM, battery, network), and the latest "
@@ -1331,18 +1331,18 @@ class JarvisLive:
         except Exception as _pe:  # a broken plugin dir must never crash startup
             self.ui.write_log(f"SYS: Plugin discovery failed: {_pe}")
 
-        # ── Emotional intelligence + self-learning (JARVIS 6.1) ──
+        # ── Emotional intelligence + self-learning (JARVIS 7.0) ──
         self._emotion_engine = EmotionEngine()
         self._last_emotion = None          # EmotionResult of the most recent user turn
         self._mood_reminder_at = 0.0       # throttle for "how was your day" check-ins
         self._session_turns = 0            # count of user/assistant exchanges
         self._greeted_today = False
 
-        # JARVIS 6.3 — Voice-based emotion detection (prosody analysis)
+        # JARVIS 7.0 — Voice-based emotion detection (prosody analysis)
         self._voice_emotion = VoiceEmotionAnalyzer()
         self._collecting_voice = False     # accumulate user PCM for voice emotion
 
-        # JARVIS 6.3 — Silent language memory: auto-detect spoken language on first use
+        # JARVIS 7.0 — Silent language memory: auto-detect spoken language on first use
         self._lang_detector = LanguageDetector()
         # Check if language was already set in memory from a prior session
         try:
@@ -1356,13 +1356,13 @@ class JarvisLive:
         except Exception:
             self._lang_detected = False
 
-        # JARVIS 6.4 — Advanced Autonomy + 7.0 reinforcement learning
+        # JARVIS 7.0 — Advanced Autonomy + 7.0 reinforcement learning
         self._rl_engine = _rl_engine
         self._rag = _rag
         self._safety = _safety
         self._local_model = _local_model
 
-        # JARVIS 6.3 — Unlimited sessions: sliding-window context compression
+        # JARVIS 7.0 — Unlimited sessions: sliding-window context compression
         self._context_compressor = ContextCompressor(
             max_chars=8000, compression_interval=30,
         )
@@ -1402,7 +1402,7 @@ class JarvisLive:
                     return ""
         self._llm = _LLMSummariser()
 
-        # JARVIS 6.1 — emotion-tuned local voice for notifications/errors
+        # JARVIS 7.0 — emotion-tuned local voice for notifications/errors
         try:
             self._prosody = ProsodySpeaker()
         except Exception:
@@ -1412,17 +1412,17 @@ class JarvisLive:
         self._emotion_voice = False
         self._emotion_speak = None  # (tag, prosody) for the current reply
 
-        # JARVIS 6.3 — Proactive Audio module (available but not suppressing).
+        # JARVIS 7.0 — Proactive Audio module (available but not suppressing).
         # The check runs on full transcripts at turn_complete for logging only.
         self._proactive = ProactiveAudio()
 
-        # JARVIS 6.4 — Advanced Autonomy: independent planning + execution engine
+        # JARVIS 7.0 — Advanced Autonomy: independent planning + execution engine
         self._autonomy = AutonomyEngine()
 
-        # JARVIS 6.4 — Real-time Multimodal Perception: fused sensor context
+        # JARVIS 7.0 — Real-time Multimodal Perception: fused sensor context
         self._multimodal = MultimodalContext(poll_interval=2.0)
 
-        # JARVIS 6.4 — Deep Domain Integration: smart home, enterprise, health, legal
+        # JARVIS 7.0 — Deep Domain Integration: smart home, enterprise, health, legal
         self._domains = DomainRouter()
 
 
@@ -1489,7 +1489,7 @@ class JarvisLive:
 
         if not self._loop or not self.session:
             return
-        # JARVIS 6.1 — prepend a brief emotion hint so text replies adapt instantly.
+        # JARVIS 7.0 — prepend a brief emotion hint so text replies adapt instantly.
         prefix = self._emotion_prefix_for_text(text)
         payload = f"{prefix}\n\n{text}" if prefix else text
         asyncio.run_coroutine_threadsafe(
@@ -1752,7 +1752,7 @@ class JarvisLive:
     async def _inject_context_summary(self, summary: str) -> None:
         """Inject a compressed context summary into the Gemini Live session.
 
-        JARVIS 6.3 — Called after :meth:`ContextCompressor.maybe_compress`
+        JARVIS 7.0 — Called after :meth:`ContextCompressor.maybe_compress`
         produces a summary, so the session never exceeds its token budget
         even on very long conversations (unlimited sessions).
         """
@@ -1785,8 +1785,8 @@ class JarvisLive:
             return
         self.speak(text)
 
-    # JARVIS 6.1 — persona + self-improvement tools
-    # JARVIS 6.1/6.2 — focus, goals, discovery tools
+    # JARVIS 7.0 — persona + self-improvement tools
+    # JARVIS 7.0/6.2 — focus, goals, discovery tools
     def _tool_focus(self, args: dict) -> str:
         action = (args.get("action") or "status").strip().lower()
         if action in ("on", "enable", "start"):
@@ -1836,7 +1836,7 @@ class JarvisLive:
             return f"Discovery error: {exc}"
 
     def _tool_autonomy(self, args: dict) -> str:
-        """JARVIS 6.4 Autonomous Planning Engine."""
+        """JARVIS 7.0 Autonomous Planning Engine."""
         action = (args.get("action") or "").strip().lower()
         if action == "plan":
             goal = (args.get("goal") or "").strip()
@@ -1881,7 +1881,7 @@ class JarvisLive:
         return "Autonomy actions: plan(goal), execute(step_id), progress, complete, abort, list"
 
     def _tool_domain(self, args: dict) -> str:
-        """JARVIS 6.4 Deep Domain Integration Router."""
+        """JARVIS 7.0 Deep Domain Integration Router."""
         action = (args.get("action") or "status").strip().lower()
         statuses = self._domains.status()
         if action == "status":
@@ -1904,7 +1904,7 @@ class JarvisLive:
         return "Domain actions: status, smarthome_turn_on, smarthome_climate, enterprise_notify, health_activity, legal_deadline"
 
     def _tool_perceive(self, args: dict) -> str:
-        """JARVIS 6.4 Real-time Multimodal Perception."""
+        """JARVIS 7.0 Real-time Multimodal Perception."""
         snap = self._multimodal.perceive()
         detail = (args.get("detail") or "summary").strip().lower()
         if detail == "full":
@@ -1926,7 +1926,7 @@ class JarvisLive:
         try:
             if self._session_log:
                 _improver.reflect(self._session_log)
-            # JARVIS 6.4 — Autonomous self-improvement: analyse performance
+            # JARVIS 7.0 — Autonomous self-improvement: analyse performance
             metrics = self._collect_session_metrics()
             _improver.optimise(session_metrics=metrics)
         except Exception as exc:
@@ -1985,7 +1985,7 @@ class JarvisLive:
         )
 
         # Identity injection — overrides any hardcoded name in prompt.txt
-        # JARVIS 6.3 — Language-aware address form
+        # JARVIS 7.0 — Language-aware address form
         _pref_lang = ""
         try:
             _lang_entry = memory.get("identity", {}).get("language", {})
@@ -2013,14 +2013,14 @@ class JarvisLive:
 
         parts = [time_ctx, identity_ctx]
 
-        # JARVIS 6.1 — active persona (whole-personality switch)
+        # JARVIS 7.0 — active persona (whole-personality switch)
         try:
             _persona = _personas.get_persona()
             parts.append(_persona.system_fragment)
         except Exception:
             pass
 
-        # ── Emotional intelligence context (JARVIS 6.1) ──
+        # ── Emotional intelligence context (JARVIS 7.0) ──
         _emotion_ctx = self._build_emotion_context(_user_name)
         if _emotion_ctx:
             parts.append(_emotion_ctx)
@@ -2028,7 +2028,7 @@ class JarvisLive:
         if mem_str:
             parts.append(mem_str)
 
-        # JARVIS 6.3 — Language instruction: respond in the user's language
+        # JARVIS 7.0 — Language instruction: respond in the user's language
         _lang = ""
         try:
             _lang_entry = memory.get("identity", {}).get("language", {})
@@ -2149,7 +2149,7 @@ class JarvisLive:
             pass
         return decls
 
-    # ── Emotional intelligence helpers (JARVIS 6.1) ──────────────────────────
+    # ── Emotional intelligence helpers (JARVIS 7.0) ──────────────────────────
     def _build_emotion_context(self, user_name: str) -> str:
         """Build a system-prompt fragment describing JARVIS's mood + recent feelings."""
         try:
@@ -2172,7 +2172,7 @@ class JarvisLive:
     ) -> object | None:
         """Analyze a user utterance for emotion, update mood journal + last emotion.
 
-        JARVIS 6.3 — if ``voice_emotion`` (from :class:`VoiceEmotionAnalyzer`)
+        JARVIS 7.0 — if ``voice_emotion`` (from :class:`VoiceEmotionAnalyzer`)
         is provided, the prosodic label is merged with the text-based analysis
         so both channels contribute to the perceived emotion.
         """
@@ -2199,7 +2199,7 @@ class JarvisLive:
         except Exception:
             return None
 
-    # ── Self-learning helpers (JARVIS 6.1) ──────────────────────────────────
+    # ── Self-learning helpers (JARVIS 7.0) ──────────────────────────────────
     def observe_learning(self, user_text: str, assistant_text: str = "") -> None:
         """Feed a conversation turn into the self-learning system."""
         try:
@@ -2256,7 +2256,7 @@ class JarvisLive:
 
         while True:
             try:
-                # JARVIS 6.1 — learn which tools the user relies on (habit learning)
+                # JARVIS 7.0 — learn which tools the user relies on (habit learning)
                 try:
                     _learner.record_tool_use(name)
                 except Exception:
@@ -2674,7 +2674,7 @@ class JarvisLive:
                 return str(_res)
             return f"Unknown tool: {name}"
 
-    # ── JARVIS 6.1: new human-like tools ────────────────────────────────────
+    # ── JARVIS 7.0: new human-like tools ────────────────────────────────────
     def _tool_emotion(self, args: dict) -> str:
         action = (args.get("action") or "mood").strip().lower()
         try:
@@ -2963,7 +2963,7 @@ class JarvisLive:
                 # Asleep/armed → audio stays local: clap + wake-phrase only.
                 self._process_wake_audio(data)
             else:
-                # JARVIS 6.3 — accumulate user PCM for voice emotion analysis
+                # JARVIS 7.0 — accumulate user PCM for voice emotion analysis
                 try:
                     self._voice_emotion.add_chunk(data)
                 except Exception:
@@ -3015,7 +3015,7 @@ class JarvisLive:
 
                         if sc.output_transcription and sc.output_transcription.text:
                             txt = _clean_transcript(sc.output_transcription.text)
-                            # JARVIS 6.1 — detect an emotion voice tag in the reply
+                            # JARVIS 7.0 — detect an emotion voice tag in the reply
                             if self._emotion_voice and self._prosody and self._prosody.available:
                                 _mt = re.search(r"\[speak:([a-z]+)\]", txt, re.I)
                                 if _mt:
@@ -3033,7 +3033,7 @@ class JarvisLive:
                                 self._last_user_speech = time.monotonic()
                                 self._session_turns += 1
 
-                                # JARVIS 6.3 — Silent language memory: detect language
+                                # JARVIS 7.0 — Silent language memory: detect language
                                 # from speech on first use, then persist to memory.
                                 if not self._lang_detected:
                                     try:
@@ -3054,7 +3054,7 @@ class JarvisLive:
                                     except Exception:
                                         pass
 
-                                # JARVIS 6.1 — feel the user's emotion + learn from it
+                                # JARVIS 7.0 — feel the user's emotion + learn from it
                                 try:
                                     self.analyze_and_apply_emotion(txt)
                                     self.observe_learning(txt, "")
@@ -3074,7 +3074,7 @@ class JarvisLive:
 
                             full_in = " ".join(in_buf).strip()
                             if full_in:
-                                # JARVIS 6.3 — Proactive Audio: log whether the
+                                # JARVIS 7.0 — Proactive Audio: log whether the
                                 # speech was likely addressed to JARVIS (for
                                 # debugging / observability). Suppression is
                                 # disabled — JARVIS always listens to addressed speech.
@@ -3082,7 +3082,7 @@ class JarvisLive:
                                     if not self._proactive.is_addressed(full_in):
                                         self.ui.write_log("SYS: (speech not addressed — but listening anyway)")
 
-                                # JARVIS 6.3 — Voice emotion analysis from prosody
+                                # JARVIS 7.0 — Voice emotion analysis from prosody
                                 self.ui.write_log(f"You: {full_in}")
                                 self._session_log.append(f"User: {full_in}")
                                 if self._dashboard:
@@ -3129,14 +3129,14 @@ class JarvisLive:
                                         "text": full_out,
                                         "ts": datetime.now().isoformat(),
                                     }))
-                                 # JARVIS 6.1 — learn from what was just said
+                                 # JARVIS 7.0 — learn from what was just said
                                 try:
                                     self.observe_learning("", full_out)
                                 except Exception:
                                     pass
                             out_buf = []
 
-                            # JARVIS 6.3 — Feed turn to context compressor for
+                            # JARVIS 7.0 — Feed turn to context compressor for
                             # sliding-window compression (unlimited sessions).
                             if full_in and full_out:
                                 self._context_compressor.add(f"User: {full_in}")
@@ -3154,7 +3154,7 @@ class JarvisLive:
                             # Reset voice emotion buffer for the next turn
                             self._voice_emotion.reset()
 
-                            # JARVIS 6.1 — emotion-tuned reply (opt-in). Speak the tagged
+                            # JARVIS 7.0 — emotion-tuned reply (opt-in). Speak the tagged
                             # reply with the local voice and skip Gemini's native audio.
                             if self._emotion_speak:
                                 _text, _pros = self._emotion_speak
@@ -3307,7 +3307,7 @@ class JarvisLive:
         lang_clause = f" Respond in {lang}." if lang else ""
         name_clause = f" Address the user as {name}." if name else ""
 
-        # JARVIS 6.1 — warm, mood-aware day check-in baked into the greeting
+        # JARVIS 7.0 — warm, mood-aware day check-in baked into the greeting
         try:
             entries = self._emotion_engine._journal.recent(days=2) if self._emotion_engine._journal else []
             recent_feel = entries[-1]["dominant"] if entries else ""
@@ -3605,13 +3605,13 @@ class JarvisLive:
             if not self._proactive.should_trigger(self._last_user_speech):
                 continue
 
-            # JARVIS 6.2 — Focus mode: stay silent during deep work
+            # JARVIS 7.0 — Focus mode: stay silent during deep work
             if not _focus.should_interrupt():
                 continue
 
             self._proactive.Jarvis_triggered()
 
-            # JARVIS 6.1 — occasional warm day check-in (separate gentle nudge)
+            # JARVIS 7.0 — occasional warm day check-in (separate gentle nudge)
             try:
                 idle = time.monotonic() - self._last_user_speech
                 if idle > 7200:  # ~2h of silence → check in on the user
@@ -3716,7 +3716,7 @@ class JarvisLive:
         self._loop = asyncio.get_event_loop()
         self._run_health_check()
 
-        # JARVIS 6.4 — Start multimodal background poller (system stats, etc.)
+        # JARVIS 7.0 — Start multimodal background poller (system stats, etc.)
         self._multimodal.start()
 
         # JARVIS 7.0 — Start nightly self-review scheduler
@@ -3858,7 +3858,7 @@ class JarvisLive:
                 # Only save if there was a real conversation (≥3 turns)
                 if len(self._session_log) >= 3:
                     self._create_task(self._save_session_summary())
-                    # JARVIS 6.1 — learn from this session's mistakes/feedback
+                    # JARVIS 7.0 — learn from this session's mistakes/feedback
                     try:
                         self._run_self_improve()
                     except Exception:

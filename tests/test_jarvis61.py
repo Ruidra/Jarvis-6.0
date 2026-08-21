@@ -1,4 +1,4 @@
-"""Tests for JARVIS 6.1: emotional intelligence, self-learning, and fast cache."""
+"""Tests for JARVIS 7.0: emotional intelligence, self-learning, and fast cache."""
 
 import os
 import sys

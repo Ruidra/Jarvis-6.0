@@ -1,4 +1,4 @@
-"""Tests for JARVIS 6.2 features: focus mode, goals, discovery."""
+"""Tests for JARVIS 7.0 features: focus mode, goals, discovery."""
 
 import sys
 import tempfile

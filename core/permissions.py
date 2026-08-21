@@ -65,7 +65,7 @@ _TOOL_SCOPE = {
     "undo_last": SCOPE_AGENT,
     "agent": SCOPE_AGENT,
     "run_command": SCOPE_SYSTEM,
-    # JARVIS 6.1 — emotional intelligence + self-learning
+    # JARVIS 7.0 — emotional intelligence + self-learning
     "emotion": SCOPE_MEMORY,
     "motivate": SCOPE_MEMORY,
     "learn": SCOPE_MEMORY,

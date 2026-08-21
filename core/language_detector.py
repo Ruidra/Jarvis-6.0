@@ -1,7 +1,7 @@
 """
 Silent-Language Memory — automatic language detection for Jarvis.
 
-JARVIS 6.3 — Detects the language of the user's *first* spoken utterance
+JARVIS 7.0 — Detects the language of the user's *first* spoken utterance
 without sending text to any external API.  Uses a lightweight two-stage
 model: word-level function-word matching (primary) + character-trigram
 fallback (for short or ambiguous utterances).

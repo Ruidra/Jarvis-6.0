@@ -1,5 +1,5 @@
 """
-JARVIS Real-time Multimodal Perception Engine — JARVIS 6.4.
+JARVIS Real-time Multimodal Perception Engine — JARVIS 7.0.
 
 Fuses information from **multiple real-time sensors** into a single
 per-frame "scene understanding" snapshot that the model (or the autonomy

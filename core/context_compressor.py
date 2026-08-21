@@ -1,7 +1,7 @@
 """
 Context Compressor for Jarvis.
 
-JARVIS 6.3 — Sliding-window context compression for unlimited sessions.
+JARVIS 7.0 — Sliding-window context compression for unlimited sessions.
 
 As a conversation grows the token window fills up.  This module keeps the
 conversation summary list within a bounded size by periodically collapsing

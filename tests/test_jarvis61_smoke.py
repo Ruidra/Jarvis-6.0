@@ -1,4 +1,4 @@
-"""Smoke test: exercise JARVIS 6.1 live methods with a fake UI (no mic/network)."""
+"""Smoke test: exercise JARVIS 7.0 live methods with a fake UI (no mic/network)."""
 
 import sys
 import types

@@ -1,5 +1,5 @@
 """
-Proactive Audio — JARVIS 6.3.
+Proactive Audio — JARVIS 7.0.
 
 Knows when you're not talking to it. While JARVIS is awake (LISTENING state),
 it analyzes the incoming speech transcription. If the speech doesn't address
