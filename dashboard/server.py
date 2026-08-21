@@ -802,6 +802,28 @@ class DashboardServer:
         cfg = uvicorn.Config(
             self.app, host="0.0.0.0", port=PORT + 1, log_level="warning",
             ssl_keyfile=str(ssl_key), ssl_certfile=str(ssl_cert),
+            log_config={
+                "version": 1,
+                "disable_existing_loggers": False,
+                "formatters": {
+                    "default": {
+                        "()": "uvicorn.logging.DefaultFormatter",
+                        "fmt": "%(levelprefix)s %(message)s",
+                        "use_colors": False,
+                    },
+                },
+                "handlers": {
+                    "default": {
+                        "formatter": "default",
+                        "class": "logging.StreamHandler",
+                        "stream": "ext://sys.stdout",
+                    },
+                },
+                "root": {
+                    "level": "WARNING",
+                    "handlers": ["default"],
+                },
+            },
         )
         print(f"[Dashboard] Manual entry:  {self._ip}:{PORT + 1}  (type in browser, accept cert once)")
         await uvicorn.Server(cfg).serve()
@@ -826,6 +848,28 @@ class DashboardServer:
         cfg = uvicorn.Config(
             self.app, host="0.0.0.0", port=PORT, log_level="warning",
             **({"ssl_keyfile": str(ssl_key), "ssl_certfile": str(ssl_cert)} if use_ssl else {}),
+            log_config={
+                "version": 1,
+                "disable_existing_loggers": False,
+                "formatters": {
+                    "default": {
+                        "()": "uvicorn.logging.DefaultFormatter",
+                        "fmt": "%(levelprefix)s %(message)s",
+                        "use_colors": False,
+                    },
+                },
+                "handlers": {
+                    "default": {
+                        "formatter": "default",
+                        "class": "logging.StreamHandler",
+                        "stream": "ext://sys.stdout",
+                    },
+                },
+                "root": {
+                    "level": "WARNING",
+                    "handlers": ["default"],
+                },
+            },
         )
 
         proto = "https" if use_ssl else "http"

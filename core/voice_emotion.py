@@ -366,7 +366,7 @@ def _map_prosody_to_emotion(
         "intensity": round(intensity, 3),
         "label": label,
         "pitch_hz": round(mean_pitch, 1),
-        "pitch_std": round(float(np.std([mean_pitch])) if mean_pitch else 0.0, 2),
+        "pitch_std": round(std_pitch, 2),
         "energy": round(energy, 3),
         "zcr": round(zcr, 3),
         "speech_rate": round(speech_rate, 3),

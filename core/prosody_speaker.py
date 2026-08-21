@@ -162,5 +162,5 @@ class ProsodySpeaker:
 
 def _temp_wav() -> str:
     import tempfile
-    return str(Path(tempfile.gettempdir()) / "jarvis_prosody.wav")
+    return str(Path(tempfile.gettempdir()) / f"jarvis_prosody_{threading.get_native_id()}.wav")
 
