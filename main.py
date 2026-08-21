@@ -1333,13 +1333,9 @@ class JarvisLive:
         self._emotion_voice = False
         self._emotion_speak = None  # (tag, prosody) for the current reply
 
-        # JARVIS 6.3 — Proactive Audio: suppress replies when speech isn't
-        # addressed to JARVIS (TV dialogue, someone talking to another person,
-        # phone call, etc.)
+        # JARVIS 6.3 — Proactive Audio module (available but not suppressing).
+        # The check runs on full transcripts at turn_complete for logging only.
         self._proactive = ProactiveAudio()
-        self._proactive_addressed = False  # True when address term detected in this turn
-        self._awaiting_sleep_confirm = False  # True after asking "may I go to sleep?"
-        self._sleep_confirm_deadline: float | None = None  # monotonic deadline
 
 
     def _make_remote_key(self):
@@ -2867,20 +2863,6 @@ class JarvisLive:
                                 in_buf.append(txt)
                                 self._last_user_speech = time.monotonic()
                                 self._session_turns += 1
-
-                                # JARVIS 6.3 — Proactive Audio: if we're waiting
-                                # for a yes/no sleep confirmation, handle it here
-                                # instead of sending to the main session.
-                                if self._awaiting_sleep_confirm:
-                                    self._handle_sleep_response(txt)
-                                    in_buf = []
-                                    continue
-
-                                # JARVIS 6.3 — Proactive Audio: track whether ANY
-                                # partial during this turn contained an address term.
-                                if self._jarvis_state in ("LISTENING", "LOCKED"):
-                                    if self._proactive.is_addressed(txt):
-                                        self._proactive_addressed = True
 
                                 # JARVIS 6.3 — Silent language memory: detect language
                                 # from speech on first use, then persist to memory.
