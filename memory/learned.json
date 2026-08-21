@@ -1,14 +1,6 @@
 {
   "facts": [
     {
-      "text": "User: fetching today",
-      "category": "identity",
-      "confidence": 0.8,
-      "source": "auto",
-      "created": "2026-08-19",
-      "updated": "2026-08-20"
-    },
-    {
       "text": "User: well",
       "category": "identity",
       "confidence": 0.8,
@@ -158,6 +150,22 @@
       "confidence": 0.95,
       "source": "explicit",
       "created": "2026-08-19",
+      "updated": "2026-08-21"
+    },
+    {
+      "text": "User: fetching today",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-19",
+      "updated": "2026-08-21"
+    },
+    {
+      "text": "User: fully capable of communicating and execu",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-21",
       "updated": "2026-08-21"
     }
   ],
