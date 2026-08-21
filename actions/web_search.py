@@ -23,19 +23,17 @@ _api_key_lock = threading.Lock()
 
 
 def _get_api_key() -> str:
-    """Return the Gemini API key, caching it for 60s to avoid repeated file I/O."""
+    """Return the Gemini API key, caching it for 60s to avoid repeated file I/O.
+    JARVIS 7.0: safely handles missing/corrupt config file."""
     global _api_key_cache, _api_key_cache_ts
     with _api_key_lock:
         if _api_key_cache and (time.time() - _api_key_cache_ts < 60):
             return _api_key_cache
-        try:
-            _api_key_cache = json.loads(
-                API_CONFIG_PATH.read_text(encoding="utf-8")
-            )["gemini_api_key"]
-            _api_key_cache_ts = time.time()
-        except Exception:
-            _api_key_cache = ""
-            _api_key_cache_ts = time.time()
+        from core.security import safe_read_config
+        _api_key_cache = safe_read_config().get("gemini_api_key", "")
+        _api_key_cache_ts = time.time()
+        if not _api_key_cache:
+            logger.debug("gemini_api_key not found in config")
         return _api_key_cache
 
 
@@ -51,9 +49,13 @@ def _gemini_search(query: str) -> str:
     )
 
     text = ""
-    for part in response.candidates[0].content.parts:
-        if hasattr(part, "text") and part.text:
-            text += part.text
+    candidates = getattr(response, "candidates", [])
+    if candidates:
+        content = getattr(candidates[0], "content", None)
+        parts = getattr(content, "parts", None) or []
+        for part in parts:
+            if hasattr(part, "text") and part.text:
+                text += part.text
 
     text = text.strip()
     if not text:
@@ -152,9 +154,13 @@ def _gemini_headlines(n: int = 5) -> tuple[list[str], str]:
     )
 
     raw = ""
-    for part in response.candidates[0].content.parts:
-        if hasattr(part, "text") and part.text:
-            raw += part.text
+    candidates = getattr(response, "candidates", [])
+    if candidates:
+        content = getattr(candidates[0], "content", None)
+        parts = getattr(content, "parts", None) or []
+        for part in parts:
+            if hasattr(part, "text") and part.text:
+                raw += part.text
 
     headlines = []
     for line in raw.strip().split("\n"):

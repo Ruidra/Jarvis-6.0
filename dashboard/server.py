@@ -15,6 +15,7 @@ import re
 import secrets
 import socket
 import string
+import threading
 import time
 from pathlib import Path
 
@@ -397,14 +398,17 @@ class DashboardServer:
         self._login_html                  = _read("login.html")
         self._app_html                    = _read("app.html")
         self.app                          = self._build_app()
+        # JARVIS 7.0: thread lock for shared mutable state
+        self._lock = threading.Lock()
 
     # ── one-time key management ───────────────────────────────────────────
 
     def new_key(self, expiry_secs: int = 600) -> str:
         now = time.time()
-        self._pending_keys = {k: v for k, v in self._pending_keys.items() if v > now}
-        key = ''.join(secrets.choice(_KEY_CHARS) for _ in range(6))
-        self._pending_keys[key] = now + expiry_secs
+        with self._lock:
+            self._pending_keys = {k: v for k, v in self._pending_keys.items() if v > now}
+            key = ''.join(secrets.choice(_KEY_CHARS) for _ in range(6))
+            self._pending_keys[key] = now + expiry_secs
         return key
 
     @staticmethod
@@ -447,16 +451,20 @@ class DashboardServer:
     # ── broadcast ────────────────────────────────────────────────────────
 
     async def broadcast(self, msg: dict) -> None:
-        self._history.append(msg)
-        if len(self._history) > 300:
-            self._history = self._history[-300:]
+        with self._lock:
+            self._history.append(msg)
+            if len(self._history) > 300:
+                self._history = self._history[-300:]
+            clients_snapshot = set(self._clients)
         dead: set[WebSocket] = set()
-        for ws in list(self._clients):
+        for ws in clients_snapshot:
             try:
                 await ws.send_json(msg)
             except Exception:
                 dead.add(ws)
-        self._clients -= dead
+        if dead:
+            with self._lock:
+                self._clients -= dead
 
     # ── FastAPI app ───────────────────────────────────────────────────────
 
@@ -465,7 +473,8 @@ class DashboardServer:
 
         def _auth(req: Request) -> bool:
             tok = req.headers.get("authorization", "").removeprefix("Bearer ").strip()
-            return bool(tok) and tok in self._tokens
+            with self._lock:
+                return bool(tok) and tok in self._tokens
 
         # Health/status telemetry — always present on the dashboard app so the
         # web UI's health panel and external monitors can poll it.
@@ -750,12 +759,15 @@ class DashboardServer:
         @app.websocket("/ws")
         async def ws_ep(websocket: WebSocket, token: str = ""):
             tok = token.strip()
-            if not tok or tok not in self._tokens:
-                await websocket.close(code=4001)
-                return
+            with self._lock:
+                if not tok or tok not in self._tokens:
+                    await websocket.close(code=4001)
+                    return
             await websocket.accept()
-            self._clients.add(websocket)
-            for entry in self._history[-50:]:
+            with self._lock:
+                self._clients.add(websocket)
+                history = self._history[-50:]
+            for entry in history:
                 try:
                     await websocket.send_json(entry)
                 except Exception:
@@ -773,7 +785,8 @@ class DashboardServer:
             except WebSocketDisconnect:
                 pass
             finally:
-                self._clients.discard(websocket)
+                with self._lock:
+                    self._clients.discard(websocket)
 
         return app
 

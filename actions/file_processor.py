@@ -22,13 +22,37 @@ import json
 import shutil
 import subprocess
 import tempfile
+import logging
 from pathlib import Path
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
+
+
 def _get_api_key() -> str:
-    config_path = Path(__file__).resolve().parent.parent / "config" / "api_keys.json"
-    with open(config_path, "r", encoding="utf-8") as f:
-        return json.load(f)["gemini_api_key"]
+    """Safely read the Gemini API key from config (handles missing file)."""
+    from core.security import safe_read_config
+    return safe_read_config().get("gemini_api_key", "")
+
+
+def _safe_path(path_str: str, base: Path | None = None) -> Path:
+    """JARVIS 7.0: Sanitize file paths to prevent path traversal attacks.
+
+    Resolves the path and ensures it doesn't escape the allowed base directory.
+    """
+    if base is None:
+        base = Path.home()
+    try:
+        resolved = Path(path_str).resolve()
+        base_resolved = base.resolve()
+        # Prevent escaping to parent directories
+        if not str(resolved).startswith(str(base_resolved)):
+            logger.warning("Path traversal blocked: %s is outside %s", resolved, base_resolved)
+            # Return a safe fallback path within the base
+            return base_resolved / Path(path_str).name
+        return resolved
+    except Exception:
+        return base / "unknown"
 
 
 def _gemini_client():

@@ -41,6 +41,45 @@ def get_base_dir() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def safe_read_config(filename: str = "api_keys.json") -> dict[str, Any]:
+    """Safely read a config JSON file, returning {} if missing or corrupt.
+
+    Replaces dozens of bare ``open(path)`` calls that crash when the file
+    doesn't exist — a CRITICAL issue from the security audit.
+    """
+    try:
+        config_path = get_base_dir() / "config" / filename
+        if not config_path.exists():
+            logger.warning("Config file %s not found — using defaults", filename)
+            return {}
+        return json.loads(config_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        logger.error("Config file %s is invalid JSON: %s", filename, exc)
+        return {}
+    except Exception as exc:
+        logger.error("Failed to read %s: %s", filename, exc)
+        return {}
+
+
+def safe_write_config(data: dict[str, Any], filename: str = "api_keys.json") -> bool:
+    """Safely write a config JSON file with atomic write."""
+    import tempfile
+    config_path = get_base_dir() / "config" / filename
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".tmp", dir=config_path.parent,
+            delete=False, encoding="utf-8"
+        ) as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            tmp_path = f.name
+        os.replace(tmp_path, config_path)
+        return True
+    except Exception as exc:
+        logger.error("Failed to write %s: %s", filename, exc)
+        return False
+
+
 class SecretVault:
     """Encrypt/decrypt JSON or string secrets with a machine-local Fernet key."""
 

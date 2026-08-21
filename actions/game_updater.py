@@ -552,8 +552,8 @@ def _update_steam_games(steam_path: Path, game_name: str = None) -> str:
     if already_updated:
         parts.append(
             f"{already_updated[0]} is already up to date."
-            if game_name else
-            f"{len(already_updated)} game(s) already up to date."
+            if game_name and already_updated
+            else f"{len(already_updated)} game(s) already up to date."
         )
     if errors:
         parts.append(f"Errors: {'; '.join(errors)}.")

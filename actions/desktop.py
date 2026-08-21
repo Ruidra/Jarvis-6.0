@@ -1,4 +1,4 @@
-#desktop.py
+import logging
 import os
 import sys
 import json
@@ -8,6 +8,7 @@ import tempfile
 import platform
 from pathlib import Path
 from datetime import datetime
+from typing import Any
 
 try:
     import pyautogui
@@ -16,6 +17,7 @@ except ImportError:
     _PYAUTOGUI = False
 
 _OS = platform.system()  # "Windows" | "Darwin" | "Linux"
+logger = logging.getLogger(__name__)
 
 
 def _get_base_dir() -> Path:
@@ -23,11 +25,16 @@ def _get_base_dir() -> Path:
         return Path(sys.executable).parent
     return Path(__file__).resolve().parent.parent
 
+
 def _get_api_key() -> str:
-    path = _get_base_dir() / "config" / "api_keys.json"
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)["gemini_api_key"]
-    
+    """Safely read the Gemini API key from config (handles missing file)."""
+    from core.security import safe_read_config
+    cfg = safe_read_config()
+    key = cfg.get("gemini_api_key", "")
+    if not key:
+        logger.warning("gemini_api_key not found in config — using empty key")
+    return key
+
 def _get_desktop() -> Path:
     if _OS == "Linux":
         xdg = os.environ.get("XDG_DESKTOP_DIR", "")
@@ -35,70 +42,94 @@ def _get_desktop() -> Path:
             return Path(xdg)
     return Path.home() / "Desktop"
 
-def _build_sandbox() -> dict:
-    import time
 
-    safe_builtins = {
-        "print": print,
-        "len": len, "str": str, "int": int, "float": float,
-        "bool": bool, "list": list, "dict": dict, "tuple": tuple,
-        "range": range, "enumerate": enumerate, "sorted": sorted,
-        "isinstance": isinstance, "hasattr": hasattr, "getattr": getattr,
-        "max": max, "min": min, "sum": sum, "abs": abs,
-        "zip": zip, "map": map, "filter": filter,
-    }
+# JARVIS 7.0 — Restricted action whitelist instead of exec()
+# Instead of executing arbitrary LLM-generated Python code, we map natural
+# language instructions to a fixed set of safe, pre-defined actions.
+class _DesktopAction:
+    """A single safe desktop action with name, handler, and risk level."""
+    def __init__(self, name: str, handler: Any, risk: str = "low"):
+        self.name = name
+        self.handler = handler
+        self.risk = risk  # low | medium | high
 
-    sandbox = {
-        "__builtins__": safe_builtins,
-        "Path": Path,
-        "time": time,
-        "shutil": type("shutil", (), {
-            "copy2":      shutil.copy2,
-            "copytree":   shutil.copytree,
-            "disk_usage": shutil.disk_usage,
-        })(),
-        "os_path": os.path,  
-    }
+_DESKTOP_ACTIONS: dict[str, _DesktopAction] = {}
 
-    if _PYAUTOGUI:
-        sandbox["pyautogui"] = pyautogui
-
-    if _OS == "Windows":
-        try:
-            import ctypes
-            import winreg
-            sandbox["ctypes"] = ctypes
-            sandbox["winreg"] = type("winreg", (), {
-                # Sadece okuma
-                "OpenKey":      winreg.OpenKey,
-                "QueryValueEx": winreg.QueryValueEx,
-                "HKEY_CURRENT_USER": winreg.HKEY_CURRENT_USER,
-            })()
-        except ImportError:
-            pass
-
-    return sandbox
+def register_action(name: str, handler: Any, risk: str = "low") -> None:
+    """Register a safe action that can be called from LLM instructions."""
+    _DESKTOP_ACTIONS[name] = _DesktopAction(name, handler, risk)
 
 
 def _execute_generated_code(code: str, player=None) -> str:
+    """JARVIS 7.0 security: No exec() on LLM code.
+
+    Instead of `exec(compile(code, ...))`, we parse the LLM's JSON instruction
+    and dispatch to registered safe actions only.
+    """
     if not code or code.strip() == "UNSAFE":
         return "This action cannot be performed safely."
 
-    # Kod temizleme
-    if code.startswith("```"):
-        lines = code.split("\n")
-        code  = "\n".join(lines[1:-1]).strip()
+    # Try to parse as JSON action request
+    try:
+        if code.startswith("```"):
+            code = code.split("\n", 1)[1].rsplit("```", 1)[0]
+        instruction = json.loads(code)
+    except (json.JSONDecodeError, ValueError):
+        # If it's not JSON, treat as a natural-language action name
+        instruction = {"action": code.strip().lower(), "params": {}}
 
-    sandbox      = _build_sandbox()
-    output_lines = []
-    sandbox["__builtins__"]["print"] = lambda *a: output_lines.append(" ".join(str(x) for x in a))
+    action_name = instruction.get("action", "") if isinstance(instruction, dict) else ""
+    params = instruction.get("params", {}) if isinstance(instruction, dict) else {}
+
+    if action_name not in _DESKTOP_ACTIONS:
+        return f"Action '{action_name}' is not available. Available actions: {', '.join(list(_DESKTOP_ACTIONS.keys())[:10])}"
+
+    action = _DESKTOP_ACTIONS[action_name]
+
+    # Check God Mode for medium/high risk actions
+    if action.risk in ("medium", "high"):
+        from core.safety import safety, RiskLevel, get_risk
+        risk = get_risk("desktop", {"action": action_name})
+        check = safety.check("desktop", {"action": action_name}, god_mode=False)
+        if check["requires_approval"]:
+            return f"Action '{action_name}' requires user approval (risk: {check['risk']}). Use God Mode."
 
     try:
-        exec(compile(code, "<jarvis_desktop>", "exec"), sandbox)
-        return "\n".join(output_lines) if output_lines else "Done."
-    except Exception as e:
-        print(f"[Desktop] Exec error: {e}\nCode:\n{code[:300]}")
-        return f"Execution error: {e}"
+        result = action.handler(**params) if params else action.handler()
+        if isinstance(result, str):
+            return result
+        return json.dumps(result, default=str)
+    except Exception as exc:
+        logger.error("Desktop action '%s' failed: %s", action_name, exc)
+        return f"Action '{action_name}' failed: {exc}"
+
+
+# Register basic safe desktop actions
+def _list_files(directory: str = ".") -> str:
+    p = Path(directory)
+    if not p.exists():
+        return f"Directory '{directory}' does not exist."
+    return "\n".join(str(f) for f in sorted(p.iterdir())[:50])
+
+def _create_file(name: str, content: str = "") -> str:
+    p = Path(name)
+    if not str(p.resolve()).startswith(str(_get_desktop())):
+        p = _get_desktop() / p.name
+    p.write_text(content, encoding="utf-8")
+    return f"Created: {p}"
+
+def _delete_file(name: str) -> str:
+    p = Path(name)
+    if not p.exists():
+        return f"File '{name}' does not exist."
+    if not str(p.resolve()).startswith(str(_get_desktop())):
+        return "Can only delete files on Desktop for safety."
+    p.unlink()
+    return f"Deleted: {p}"
+
+register_action("list_files", _list_files, risk="low")
+register_action("create_file", _create_file, risk="medium")
+register_action("delete_file", _delete_file, risk="high")
 
 
 def _ask_gemini_for_desktop_action(task: str) -> str:

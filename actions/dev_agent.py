@@ -20,8 +20,8 @@ MODEL_PLANNER    = "gemini-flash-latest"
 MODEL_WRITER     = "gemini-flash-latest"
 
 def _get_api_key() -> str:
-    with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)["gemini_api_key"]
+    from core.security import safe_read_config
+    return safe_read_config().get("gemini_api_key", "")
 
 
 def _get_model(model_name: str):

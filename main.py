@@ -168,8 +168,12 @@ _EMOTION_PROSODY_MAP = {
 }
 
 def _get_api_key() -> str:
-    with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)["gemini_api_key"]
+    """JARVIS 7.0 security: safely read API key — no crash if config missing."""
+    from core.security import safe_read_config
+    key = safe_read_config().get("gemini_api_key", "")
+    if not key:
+        logger.warning("gemini_api_key not found in config — audio features will fail")
+    return key
 
 
 def _load_system_prompt() -> str:
@@ -1268,8 +1272,10 @@ class JarvisLive:
         self.audio_in_queue       = None
         self.out_queue            = None
         self._loop                = None
-        self._is_speaking         = False
+        self._is_speaking = False
         self._speaking_lock       = threading.Lock()
+        self._state_lock          = threading.Lock()  # JARVIS 7.0: protect _jarvis_state
+        self._bg_tasks: set[asyncio.Task] = set()     # JARVIS 7.0: track background tasks
         self._phone_active        = False   # True while phone mic is streaming; pauses PC mic
         self._pending_vision       = None    # (img_bytes, mime_type, question, angle) to inject after tool response
         self._vision_cam_active    = False   # True if camera was opened for vision → auto-close after response
@@ -1304,9 +1310,9 @@ class JarvisLive:
                 arm_window=WAKE_TIMEOUT,
                 require_clap=CLAP_ENABLED and WAKE_REQUIRE_CLAP,
             )
-            print(f"[WAKE] Engine ready — phrase backend: {self._wake_engine.backend}")
+            logger.info(f"[WAKE] Engine ready — phrase backend: {self._wake_engine.backend}")
         except Exception as e:
-            print(f"[WAKE] Wake engine unavailable: {e}")
+            logger.info(f"[WAKE] Wake engine unavailable: {e}")
             self._wake_engine = None
 
         # ── Plugin system (advanced extensibility) ──
@@ -1438,7 +1444,7 @@ class JarvisLive:
         # ── Quick local commands (no model round-trip needed) ──
         t = (text or "").strip().lower()
 
-        if self._jarvis_state in ("LOCKED", "OFFLINE", "READY"):
+        if self.jarvis_state in ("LOCKED", "OFFLINE", "READY"):
             if any(w in t for w in ("unlock", "wake", "wake up", "jarvis", "hey jarvis")):
                 self.force_wake("typed command")
                 self._play_activation_sound()
@@ -1471,13 +1477,13 @@ class JarvisLive:
         if any(w in t for w in ("full screen", "fullscreen", "full screen mode", "maximize", "projector", "cinema")):
             self.ui.go_fullscreen()
             self.ui.write_log("SYS: Full screen ON")
-            if self._jarvis_state in ("LISTENING", "SPEAKING"):
+            if self.jarvis_state in ("LISTENING", "SPEAKING"):
                 self.speak("Full screen engaged, sir.")
             return
         if any(w in t for w in ("exit fullscreen", "exit full screen", "window mode", "minimize screen", "leave fullscreen", "normal screen")):
             self.ui.exit_fullscreen()
             self.ui.write_log("SYS: Full screen OFF")
-            if self._jarvis_state in ("LISTENING", "SPEAKING"):
+            if self.jarvis_state in ("LISTENING", "SPEAKING"):
                 self.speak("Back to window mode, sir.")
             return
 
@@ -1502,13 +1508,32 @@ class JarvisLive:
         elif not self.ui.muted:
             self.ui.set_state("LISTENING")
 
+    @property
+    def is_speaking(self) -> bool:
+        """Thread-safe read of speaking state."""
+        with self._speaking_lock:
+            return self._is_speaking
+
+    def _create_task(self, coro) -> asyncio.Task:
+        """JARVIS 7.0: track background tasks to prevent leaks."""
+        task = asyncio.create_task(coro)
+        self._bg_tasks.add(task)
+        task.add_done_callback(self._bg_tasks.discard)
+        return task
+
+
     def _broadcast_typing(self, on: bool) -> None:
         """Tell connected dashboards whether JARVIS is composing a reply."""
         if self._dashboard is not None:
             try:
-                asyncio.create_task(
-                    self._dashboard.broadcast({"type": "typing", "on": bool(on)})
-                )
+                if self._loop and self._loop.is_running():
+                    self._create_task(
+                        self._dashboard.broadcast({"type": "typing", "on": bool(on)})
+                    )
+                else:
+                    asyncio.create_task(
+                        self._dashboard.broadcast({"type": "typing", "on": bool(on)})
+                    )
             except Exception:
                 pass
 
@@ -1525,7 +1550,7 @@ class JarvisLive:
                 except Exception:
                     break
             if drained:
-                print(f"[JARVIS] ✋ Interrupted — {drained} audio chunks discarded")
+                logger.info(f"[JARVIS] ✋ Interrupted — {drained} audio chunks discarded")
         self._broadcast_typing(False)
         self.set_speaking(False)
         if self._turn_done_event:
@@ -1563,7 +1588,7 @@ class JarvisLive:
         try:
             result = engine.feed(data)
         except Exception as e:  # never kill the audio callback
-            print(f"[WAKE] feed error: {e}")
+            logger.info(f"[WAKE] feed error: {e}")
             return
         if not result:
             return
@@ -1626,7 +1651,7 @@ class JarvisLive:
             self.ui.clap_feedback()
         except Exception:
             pass
-        if self._jarvis_state in ("LISTENING", "SPEAKING"):
+        if self.jarvis_state in ("LISTENING", "SPEAKING"):
             return                      # already awake, nothing to do
         self._set_jarvis_state("READY")
         if WAKE_BEEP:
@@ -1637,7 +1662,7 @@ class JarvisLive:
 
     def _on_wake_confirmed(self, phrase: str = "") -> None:
         """Wake phrase confirmed → open the live conversation."""
-        if self._jarvis_state in ("LISTENING", "SPEAKING"):
+        if self.jarvis_state in ("LISTENING", "SPEAKING"):
             return
         self._cancel_ready_timeout()
         self._set_jarvis_state("LISTENING")
@@ -1648,7 +1673,7 @@ class JarvisLive:
             try:
                 self.ui.wake_sequence(delay=WAKE_BOOT_DELAY)
             except Exception as _e:
-                print(f"[WAKE] fullscreen trigger failed: {_e}")
+                logger.info(f"[WAKE] fullscreen trigger failed: {_e}")
                 try:
                     self.ui.go_fullscreen()
                 except Exception:
@@ -1673,7 +1698,7 @@ class JarvisLive:
         if self._wake_engine is not None:
             self._wake_engine.disarm()
         self._cancel_ready_timeout()
-        if self._jarvis_state in ("LISTENING", "SPEAKING"):
+        if self.jarvis_state in ("LISTENING", "SPEAKING"):
             return
         self._set_jarvis_state("LISTENING")
         _metrics.inc("wake_forced")
@@ -1693,7 +1718,7 @@ class JarvisLive:
             self._ready_timeout_handle = None
 
     def _on_ready_timeout(self):
-        if self._jarvis_state == "READY":
+        if self.jarvis_state == "READY":
             if self._wake_engine is not None:
                 self._wake_engine.disarm()
             self._set_jarvis_state("OFFLINE")
@@ -1701,10 +1726,17 @@ class JarvisLive:
             self._maybe_exit_fullscreen()
 
     def _set_jarvis_state(self, state: str):
-        self._jarvis_state = state
+        with self._state_lock:
+            self._jarvis_state = state
         self.ui.set_state(state)
         bus.emit("jarvis.state", {"state": state}, source="main")
-        print(f"[JARVIS] State: {state}")
+        logger.info("State: %s", state)
+
+    @property
+    def jarvis_state(self) -> str:
+        """Thread-safe read of JARVIS state."""
+        with self._state_lock:
+            return self._jarvis_state
 
     def _cancel_ready_timeout(self):
         if self._ready_timeout_handle:
@@ -1932,7 +1964,7 @@ class JarvisLive:
     def _build_config(self) -> types.LiveConnectConfig:
         # Load customization from config
         try:
-            _cfg = json.loads(open(API_CONFIG_PATH, encoding="utf-8").read())
+            _cfg = safe_read_config()
             self._asst_name = (_cfg.get("assistant_name") or "JARVIS").strip()
             _user_name = (_cfg.get("user_name") or "").strip()
             self._user_name = _user_name
@@ -2182,7 +2214,7 @@ class JarvisLive:
         name = fc.name
         args = dict(fc.args or {})
 
-        print(f"[JARVIS] 🔧 {name}  {args}")
+        logger.info(f"[JARVIS] 🔧 {name}  {args}")
         self.ui.set_state("THINKING")
         self._broadcast_typing(True)
 
@@ -2208,7 +2240,7 @@ class JarvisLive:
             value    = args.get("value", "")
             if key and value:
                 update_memory({category: {key: {"value": value}}})
-                print(f"[Memory] 💾 save_memory: {category}/{key} = {value}")
+                logger.info(f"[Memory] 💾 save_memory: {category}/{key} = {value}")
             if not self.ui.muted:
                 self.ui.set_state("LISTENING")
             return types.FunctionResponse(
@@ -2272,7 +2304,7 @@ class JarvisLive:
         if not self.ui.muted:
             self.ui.set_state("LISTENING")
 
-        print(f"[JARVIS] 📤 {name} → {str(result)[:80]}")
+        logger.info(f"[JARVIS] 📤 {name} → {str(result)[:80]}")
         return types.FunctionResponse(
             id=fc.id, name=name,
             response={"result": result}
@@ -2323,7 +2355,7 @@ class JarvisLive:
             _cooldown = 4.0
             if self._vision_busy or (_now - self._vision_last_time) < _cooldown:
                 _wait = max(0, _cooldown - (_now - self._vision_last_time))
-                print(f"[Vision] ⏳ Cooldown ({_wait:.1f}s) — skipping")
+                logger.info(f"[Vision] ⏳ Cooldown ({_wait:.1f}s) — skipping")
                 return "Vision is still processing the previous request."
             self._vision_busy = True
             self._vision_last_time = _now
@@ -2477,7 +2509,7 @@ class JarvisLive:
                 await asyncio.sleep(1.5)
                 import os as _os
                 _os._exit(0)
-            asyncio.create_task(_do_shutdown())
+            self._create_task(_do_shutdown())
             return "Shutdown initiated."
 
         elif name == "timer":
@@ -2507,7 +2539,7 @@ class JarvisLive:
                 else:
                     from memory.memory_manager import forget_category
                     result = forget_category(category)
-                print(f"[Memory] 🗑️ forget_memory: {category}/{key or '*'}")
+                logger.info(f"[Memory] 🗑️ forget_memory: {category}/{key or '*'}")
                 return result
             except Exception as e:
                 return f"Forget failed: {e}"
@@ -2923,11 +2955,11 @@ class JarvisLive:
 
         def callback(indata, frames, time_info, status):
             with self._speaking_lock:
-                jarvis_speaking = self._is_speaking
+                jarvis_speaking = self.is_speaking
             if jarvis_speaking or self.ui.muted or self._phone_active:
                 return
             data = indata.tobytes()
-            if self._jarvis_state in ("OFFLINE", "READY", "LOCKED"):
+            if self.jarvis_state in ("OFFLINE", "READY", "LOCKED"):
                 # Asleep/armed → audio stays local: clap + wake-phrase only.
                 self._process_wake_audio(data)
             else:
@@ -2953,7 +2985,7 @@ class JarvisLive:
                 while True:
                     await asyncio.sleep(0.1)
         except Exception as e:
-            print(f"[JARVIS] ❌ Mic: {e}")
+            logger.info(f"[JARVIS] ❌ Mic: {e}")
             raise
 
     async def _receive_audio(self):
@@ -3046,7 +3078,7 @@ class JarvisLive:
                                 # speech was likely addressed to JARVIS (for
                                 # debugging / observability). Suppression is
                                 # disabled — JARVIS always listens to addressed speech.
-                                if self._jarvis_state in ("LISTENING", "LOCKED"):
+                                if self.jarvis_state in ("LISTENING", "LOCKED"):
                                     if not self._proactive.is_addressed(full_in):
                                         self.ui.write_log("SYS: (speech not addressed — but listening anyway)")
 
@@ -3054,7 +3086,7 @@ class JarvisLive:
                                 self.ui.write_log(f"You: {full_in}")
                                 self._session_log.append(f"User: {full_in}")
                                 if self._dashboard:
-                                    asyncio.create_task(self._dashboard.broadcast({
+                                    self._create_task(self._dashboard.broadcast({
                                         "type": "log", "speaker": "user",
                                         "text": full_in,
                                         "ts": datetime.now().isoformat(),
@@ -3073,7 +3105,7 @@ class JarvisLive:
                                 except Exception:
                                     pass
 
-                                if self._jarvis_state in ("LISTENING", "LOCKED"):
+                                if self.jarvis_state in ("LISTENING", "LOCKED"):
                                     _sleep_phrases = [
                                         "sleep", "go to sleep", "goodnight",
                                         "shut down jarvis", "turn off jarvis",
@@ -3083,7 +3115,7 @@ class JarvisLive:
                                             f"[LOCKED|LISTENING] Sleep command detected — "
                                             f"user said: '{full_in[:60]}'"
                                         )
-                                        print(f"[JARVIS] 🛌 {msg}")
+                                        logger.info(f"[JARVIS] 🛌 {msg}")
                                         _should_sleep = True
                             in_buf = []
 
@@ -3092,7 +3124,7 @@ class JarvisLive:
                                 self.ui.write_log(f"{self._asst_name}: {full_out}")
                                 self._session_log.append(f"{self._asst_name}: {full_out}")
                                 if self._dashboard:
-                                    asyncio.create_task(self._dashboard.broadcast({
+                                    self._create_task(self._dashboard.broadcast({
                                         "type": "log", "speaker": "jarvis",
                                         "text": full_out,
                                         "ts": datetime.now().isoformat(),
@@ -3115,7 +3147,7 @@ class JarvisLive:
                                     llm_client=self._llm
                                 )
                                 if _summary and self.session:
-                                    asyncio.create_task(
+                                    self._create_task(
                                         self._inject_context_summary(_summary)
                                     )
 
@@ -3146,7 +3178,7 @@ class JarvisLive:
                                 img_b, mime_t, question, angle = self._pending_vision
                                 self._pending_vision = None
                                 b64 = _b64.b64encode(img_b).decode("ascii")
-                                print(f"[Vision] 📤 {len(img_b):,} bytes (angle={angle}) → main session")
+                                logger.info(f"[Vision] 📤 {len(img_b):,} bytes (angle={angle}) → main session")
                                 await self.session.send_client_content(
                                     turns={"parts": [
                                         {"inline_data": {"mime_type": mime_t, "data": b64}},
@@ -3169,12 +3201,12 @@ class JarvisLive:
                                 async def _cam_close():
                                     await asyncio.sleep(2.0)
                                     self.ui.stop_camera_stream()
-                                asyncio.create_task(_cam_close())
+                                asyncio.create_task(_cam_close())  # fire-and-forget: just close cam after 2s
 
                     if response.tool_call:
                         fn_responses = []
                         for fc in response.tool_call.function_calls:
-                            print(f"[JARVIS] 📞 {fc.name}")
+                            logger.info(f"[JARVIS] 📞 {fc.name}")
                             fr = await self._execute_tool(fc)
                             fn_responses.append(fr)
                         await self.session.send_tool_response(
@@ -3185,7 +3217,7 @@ class JarvisLive:
                         self._set_jarvis_state("OFFLINE")
                         self.ui.write_log("SYS: Sleep command detected - going offline")
         except Exception as e:
-            print(f"[JARVIS] ❌ Recv: {e}")
+            logger.info(f"[JARVIS] ❌ Recv: {e}")
             traceback.print_exc()
             raise
 
@@ -3234,7 +3266,7 @@ class JarvisLive:
                 except (RuntimeError, asyncio.CancelledError):
                     break   # executor shutting down — exit cleanly
         except Exception as e:
-            print(f"[JARVIS] ❌ Play: {e}")
+            logger.info(f"[JARVIS] ❌ Play: {e}")
             raise
         finally:
             self.set_speaking(False)
@@ -3379,7 +3411,7 @@ class JarvisLive:
                 print(f"[Briefing] Phase 2 error: {e}")
                 self.ui.write_log(f"SYS: Briefing phase 2 failed: {e}")
 
-        asyncio.create_task(_deliver_news())
+        self._create_task(_deliver_news())
 
     async def _send_day_checkin(self) -> None:
         """Warm, human 'how was your day?' check-in sent after a lull (throttled)."""
@@ -3449,7 +3481,7 @@ class JarvisLive:
             if summary:
                 save_session_summary(summary, lang)
         except Exception as e:
-            print(f"[Memory] ⚠️ Session summary failed: {e}")
+            logger.info(f"[Memory] ⚠️ Session summary failed: {e}")
 
     # ── System monitor ──────────────────────────────────────────────────────────
 
@@ -3462,7 +3494,7 @@ class JarvisLive:
                 continue
             # Don't interrupt an active conversation
             with self._speaking_lock:
-                speaking = self._is_speaking
+                speaking = self.is_speaking
             if speaking or (time.monotonic() - self._last_user_speech) < 10:
                 continue
             try:
@@ -3494,7 +3526,7 @@ class JarvisLive:
 
             # Don't interrupt an active conversation
             with self._speaking_lock:
-                speaking = self._is_speaking
+                speaking = self.is_speaking
             if speaking or (time.monotonic() - self._last_user_speech) < 5:
                 # Re-queue gracefully: put them back so they fire once the user is idle.
                 for label in due:
@@ -3527,7 +3559,7 @@ class JarvisLive:
             if self.session:
                 # Don't interrupt if user spoke recently or JARVIS is mid-sentence
                 with self._speaking_lock:
-                    speaking = self._is_speaking
+                    speaking = self.is_speaking
                 recent_speech = (time.monotonic() - self._last_user_speech) < 30
                 if not speaking and not recent_speech:
                     try:
@@ -3566,7 +3598,7 @@ class JarvisLive:
                 continue
 
             with self._speaking_lock:
-                speaking = self._is_speaking
+                speaking = self.is_speaking
             if speaking:
                 continue
 
@@ -3618,7 +3650,7 @@ class JarvisLive:
                 continue
             self._phone_active = True   # phone is streaming — silence PC mic
             with self._speaking_lock:
-                speaking = self._is_speaking
+                speaking = self.is_speaking
             if not speaking and not self.ui.muted:
                 try:
                     self.out_queue.put_nowait(chunk)
@@ -3708,7 +3740,7 @@ class JarvisLive:
 
         while True:
             try:
-                print(f"[JARVIS] Connecting... (model: {get_live_model()})")
+                logger.info(f"[JARVIS] Connecting... (model: {get_live_model()})")
                 self.ui.set_state("THINKING")
                 config = self._build_config()
 
@@ -3791,7 +3823,7 @@ class JarvisLive:
                 # exception escape the while-loop and causing asyncio.run() to
                 # start shutdown — resulting in "executor after shutdown" errors).
                 err_str = str(e)
-                print(f"[JARVIS] Error ({type(e).__name__}): {e}")
+                logger.info(f"[JARVIS] Error ({type(e).__name__}): {e}")
                 traceback.print_exc()
 
                 # Invalid API key — stop hammering the API, prompt re-configuration
@@ -3825,7 +3857,7 @@ class JarvisLive:
                 self.session = None
                 # Only save if there was a real conversation (≥3 turns)
                 if len(self._session_log) >= 3:
-                    asyncio.create_task(self._save_session_summary())
+                    self._create_task(self._save_session_summary())
                     # JARVIS 6.1 — learn from this session's mistakes/feedback
                     try:
                         self._run_self_improve()
@@ -3839,7 +3871,7 @@ class JarvisLive:
                 await self._dashboard.broadcast({"type": "status", "state": "sleeping"})
 
             delay = getattr(self, "_conn_backoff", 3)
-            print(f"[JARVIS] Reconnecting in {delay}s...")
+            logger.info(f"[JARVIS] Reconnecting in {delay}s...")
             await asyncio.sleep(delay)
 
 def _startup_health_check() -> list[str]:

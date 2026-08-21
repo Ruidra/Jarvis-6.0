@@ -322,10 +322,11 @@ class Database:
 
     def get_tool_stats(self, limit: int = 100) -> list[dict[str, Any]]:
         rows = self._connect().execute(
-            f"""SELECT tool_name, AVG(duration_ms) as avg_ms,
-                       SUM(CASE WHEN success THEN 0 ELSE 1 END) as failures,
-                       COUNT(*) as total
-                FROM tool_calls GROUP BY tool_name ORDER BY total DESC LIMIT {limit}""",
+            """SELECT tool_name, AVG(duration_ms) as avg_ms,
+                      SUM(CASE WHEN success THEN 0 ELSE 1 END) as failures,
+                      COUNT(*) as total
+               FROM tool_calls GROUP BY tool_name ORDER BY total DESC LIMIT ?""",
+            (limit,),
         ).fetchall()
         return [{"tool": r[0], "avg_ms": round(r[1], 1),
                  "failures": r[2], "total": r[3]} for r in rows]

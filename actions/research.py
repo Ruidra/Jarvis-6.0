@@ -20,11 +20,8 @@ except ImportError:  # allow running this module directly
 
 
 def _get_api_key() -> str | None:
-    try:
-        with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
-            return json.load(f).get("gemini_api_key")
-    except Exception:
-        return None
+    from core.security import safe_read_config
+    return safe_read_config().get("gemini_api_key")
 
 
 _RESEARCH_ANGLES = [
