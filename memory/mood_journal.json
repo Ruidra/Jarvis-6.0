@@ -2,15 +2,6 @@
   "mood": "neutral",
   "entries": [
     {
-      "ts": 1787206834.2713614,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
       "ts": 1787206865.9682996,
       "date": "2026-08-20",
       "user": "Boss",
@@ -3594,6 +3585,15 @@
     },
     {
       "ts": 1787320513.206223,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "neutral",
+      "label": "neutral",
+      "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787322361.4308436,
       "date": "2026-08-21",
       "user": "Boss",
       "dominant": "neutral",
