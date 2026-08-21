@@ -1,33 +1,6 @@
 {
-  "mood": "neutral",
+  "mood": "anxious",
   "entries": [
-    {
-      "ts": 1787204410.2740152,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787204410.4542747,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
-    {
-      "ts": 1787204411.3560102,
-      "date": "2026-08-20",
-      "user": "Boss",
-      "dominant": "neutral",
-      "label": "neutral",
-      "intensity": 0.0,
-      "note": ""
-    },
     {
       "ts": 1787204428.6214516,
       "date": "2026-08-20",
@@ -3599,6 +3572,33 @@
       "dominant": "neutral",
       "label": "neutral",
       "intensity": 0.0,
+      "note": ""
+    },
+    {
+      "ts": 1787299424.0247824,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787299427.3944335,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787299430.349073,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "anxious",
+      "label": "negative",
+      "intensity": 0.5,
       "note": ""
     }
   ]

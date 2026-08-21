@@ -108,6 +108,10 @@ from core.learning import learner as _learner
 from core.fast_cache import cache as _fast_cache
 from core.prosody_speaker import ProsodySpeaker
 from core.self_improve import improver as _improver
+from core.reinforcement import rl_engine as _rl_engine
+from core.rag import rag as _rag
+from core.safety import safety as _safety
+from core.local_model import local_model as _local_model
 from core import personas as _personas
 from core import focus_mode as _focus
 from core import goals as _goals
@@ -1346,6 +1350,12 @@ class JarvisLive:
         except Exception:
             self._lang_detected = False
 
+        # JARVIS 6.4 — Advanced Autonomy + 7.0 reinforcement learning
+        self._rl_engine = _rl_engine
+        self._rag = _rag
+        self._safety = _safety
+        self._local_model = _local_model
+
         # JARVIS 6.3 — Unlimited sessions: sliding-window context compression
         self._context_compressor = ContextCompressor(
             max_chars=8000, compression_interval=30,
@@ -1788,6 +1798,7 @@ class JarvisLive:
             if plugins:
                 lines.append("Plugins: " + ", ".join(plugins))
             lines.append("Plus: emotions, learning, personas, focus mode, goals, motivation, autonomy.")
+            lines.append("JARVIS 7.0: multimodal perception, domain integration, reinforcement learning, RAG, visual memory, safety sandboxes, local model fallback.")
             return "\n".join(lines)
         except Exception as exc:
             return f"Discovery error: {exc}"
@@ -3675,6 +3686,13 @@ class JarvisLive:
 
         # JARVIS 6.4 — Start multimodal background poller (system stats, etc.)
         self._multimodal.start()
+
+        # JARVIS 7.0 — Start nightly self-review scheduler
+        try:
+            from core.self_review import schedule_nightly
+            schedule_nightly()
+        except Exception as exc:
+            logger.debug("self-review scheduler not started: %s", exc)
 
         # Start dashboard (optional — needs: pip install fastapi "uvicorn[standard]" cryptography)
         try:
