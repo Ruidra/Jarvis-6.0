@@ -89,14 +89,6 @@
       "updated": "2026-08-20"
     },
     {
-      "text": "User: fully functional and ready to assist wit",
-      "category": "identity",
-      "confidence": 0.8,
-      "source": "auto",
-      "created": "2026-08-20",
-      "updated": "2026-08-20"
-    },
-    {
       "text": "User: now fetching today",
       "category": "identity",
       "confidence": 0.8,
@@ -191,19 +183,27 @@
       "source": "explicit",
       "created": "2026-08-19",
       "updated": "2026-08-21"
+    },
+    {
+      "text": "User: fully functional and ready to assist wit",
+      "category": "identity",
+      "confidence": 0.8,
+      "source": "auto",
+      "created": "2026-08-20",
+      "updated": "2026-08-21"
     }
   ],
   "corrections": [],
   "habits": {
     "browser_control": 4,
-    "web_search": 3,
+    "web_search": 4,
     "recall_memory": 2,
     "youtube_video": 5,
     "wikipedia": 1,
-    "screen_process": 2,
+    "screen_process": 3,
     "shutdown_jarvis": 6,
     "weather_report": 6,
-    "power_tools": 6,
+    "power_tools": 7,
     "god_mode": 3,
     "discover": 3,
     "open_app": 3,
