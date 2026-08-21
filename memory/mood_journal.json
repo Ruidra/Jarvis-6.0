@@ -2322,6 +2322,33 @@
       "label": "negative",
       "intensity": 0.5,
       "note": ""
+    },
+    {
+      "ts": 1787284100.8087933,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787284103.7524028,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787284105.8796859,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "anxious",
+      "label": "negative",
+      "intensity": 0.5,
+      "note": ""
     }
   ]
 }

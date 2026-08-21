@@ -17,6 +17,7 @@ try:
 except ImportError:
     requests = None
 
+from core.retry import retry
 from memory.config_manager import load_api_keys
 from memory.memory_manager import load_memory
 
@@ -93,6 +94,7 @@ def _format_forecast(data: dict) -> str:
         return f"Weather data received for your location, sir."
 
 
+@retry(on_exceptions=(Exception,), tries=3, delay=1.0, backoff=2.0)
 def _fetch_from_api(city: str) -> str | None:
     """Query OpenWeatherMap for *city*.  Returns spoken text or None on failure."""
     if requests is None:

@@ -11,7 +11,8 @@
     "utils": true,
     "wikipedia": true,
     "briefing": true,
-    "teach": true
+    "teach": true,
+    "calorie_counter": true
   },
   "installed": {
     "calendar": {
@@ -140,6 +141,20 @@
         "what have you learned",
         "what do you know about me",
         "what do you remember"
+      ]
+    },
+    "calorie_counter": {
+      "description": "Food and calorie tracker. Log what you eat, track daily calories and macros against a goal, and review your food history. Use when the user says 'log food', 'track calories', 'I ate', 'what did I eat today', 'my calorie count', 'set a goal', or 'show my food log'.",
+      "triggers": [
+        "log food",
+        "track calories",
+        "calorie count",
+        "calorie counter",
+        "i ate",
+        "food log",
+        "my macros",
+        "what did i eat",
+        "nutrition"
       ]
     }
   },

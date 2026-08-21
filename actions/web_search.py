@@ -5,6 +5,8 @@ import threading
 import time
 from pathlib import Path
 
+from core.retry import retry
+
 def _get_base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
@@ -37,6 +39,7 @@ def _get_api_key() -> str:
         return _api_key_cache
 
 
+@retry(on_exceptions=(Exception,), tries=3, delay=0.5, backoff=2.0)
 def _gemini_search(query: str) -> str:
     from google import genai
 
@@ -44,7 +47,7 @@ def _gemini_search(query: str) -> str:
     response = client.models.generate_content(
         model="gemini-flash-latest",
         contents=query,
-        config={"tools": [{"google_search": {}}]},
+        config={"tools": [{"google_search": {}}], "max_output_tokens": 2048},
     )
 
     text = ""
