@@ -1269,23 +1269,56 @@ class JarvisLive:
 
         # JARVIS 6.3 — Silent language memory: auto-detect spoken language on first use
         self._lang_detector = LanguageDetector()
-        self._lang_detected = False        # set True once first language is stored
+        # Check if language was already set in memory from a prior session
+        try:
+            _lang_entry = load_memory().get("identity", {}).get("language", {})
+            _existing_lang = (
+                _lang_entry.get("value", "")
+                if isinstance(_lang_entry, dict)
+                else str(_lang_entry)
+            ).strip()
+            self._lang_detected = bool(_existing_lang)
+        except Exception:
+            self._lang_detected = False
 
         # JARVIS 6.3 — Unlimited sessions: sliding-window context compression
         self._context_compressor = ContextCompressor(
             max_chars=8000, compression_interval=30,
         )
 
-        # Lightweight LLM wrapper for context summarisation (extractive fallback
-        # if the LLM call fails)
+        # LLM summariser for context compression (uses Gemini if available,
+        # falls back to local LLM, then to extractive summarisation)
         class _LLMSummariser:
             def summarize(self, text: str, max_tokens: int = 500) -> str:
-                from core.llm_client import call_llm_text
-                prompt = (
-                    f"Summarise the following conversation into a concise "
-                    f"paragraph ({max_tokens} tokens max):\n\n{text}"
-                )
-                return call_llm_text(prompt, max_tokens=max_tokens)
+                _api_key = _get_api_key()
+                if _api_key:
+                    try:
+                        from google import genai as _genai
+                        client = _genai.Client(api_key=_api_key)
+                        resp = client.models.generate_content(
+                            model="gemini-2.5-flash",
+                            contents=(
+                                f"Summarise the following conversation into a "
+                                f"concise paragraph that preserves key facts and "
+                                f"context for future turns ({max_tokens} tokens max):\n\n{text}"
+                            ),
+                            config={"max_output_tokens": max_tokens},
+                        )
+                        result = (resp.text or "").strip()
+                        if result:
+                            return result
+                    except Exception:
+                        pass
+                # Fallback: local LLM
+                try:
+                    from core.llm_client import call_llm_text
+                    prompt = (
+                        f"Summarise the following conversation into a concise "
+                        f"paragraph ({max_tokens} tokens max):\n\n{text}"
+                    )
+                    return call_llm_text(prompt, max_tokens=max_tokens)
+                except Exception:
+                    return ""
         self._llm = _LLMSummariser()
 
         # JARVIS 6.1 — emotion-tuned local voice for notifications/errors
@@ -1733,10 +1766,25 @@ class JarvisLive:
         )
 
         # Identity injection — overrides any hardcoded name in prompt.txt
-        _addr = (f"ADDRESS: Always call the user '{_user_name}'."
-                 if _user_name
-                 else "ADDRESS: When speaking Bangla → always say \"স্যার\". "
-                      "When speaking English → say \"sir\". Never mix languages.")
+        # JARVIS 6.3 — Language-aware address form
+        _pref_lang = ""
+        try:
+            _lang_entry = memory.get("identity", {}).get("language", {})
+            _pref_lang = (
+                _lang_entry.get("value", "")
+                if isinstance(_lang_entry, dict)
+                else str(_lang_entry)
+            ).strip()
+        except Exception:
+            pass
+        if _pref_lang and _pref_lang.lower() in ("bangla", "bengali", "bn"):
+            _addr = ("ADDRESS: When speaking Bangla → always say \"স্যার\". "
+                     "When speaking English → call them \"sir\". Never mix languages.")
+        elif _user_name:
+            _addr = f"ADDRESS: Always call the user '{_user_name}'."
+        else:
+            _addr = ("ADDRESS: When speaking Bangla → always say \"স্যার\". "
+                     "When speaking English → say \"sir\". Never mix languages.")
         identity_ctx = (
             f"[IDENTITY]\n"
             f"Your name is {self._asst_name}. "
@@ -1760,6 +1808,34 @@ class JarvisLive:
 
         if mem_str:
             parts.append(mem_str)
+
+        # JARVIS 6.3 — Language instruction: respond in the user's language
+        _lang = ""
+        try:
+            _lang_entry = memory.get("identity", {}).get("language", {})
+            _lang = (
+                _lang_entry.get("value", "")
+                if isinstance(_lang_entry, dict)
+                else str(_lang_entry)
+            ).strip()
+        except Exception:
+            pass
+        if _lang:
+            parts.append(
+                f"[LANGUAGE INSTRUCTION]\n"
+                f"You are speaking with a user whose preferred language is "
+                f"{_lang}. Respond in {_lang} naturally. "
+                f"When addressing them, use the appropriate cultural form of address "
+                f"(e.g. 'স্যার' for Bangla, 'sir' for English). "
+                f"If the user code-switches, match their language.\n"
+            )
+        else:
+            parts.append(
+                "[LANGUAGE INSTRUCTION]\n"
+                "The user's preferred language has not been set yet. "
+                "Default to Bangla. Address the user as 'স্যার'.\n"
+            )
+
         parts.append(sys_prompt)
 
         # Face recognition — know who the boss is.
@@ -2734,18 +2810,17 @@ class JarvisLive:
                                         lang_code = self._lang_detector.detect(txt)
                                         if lang_code:
                                             self._lang_detected = True
+                                            _lang_name = LanguageDetector.language_name(lang_code)
                                             self.ui.write_log(
-                                                f"SYS: Auto-detected language: {lang_code}"
+                                                f"SYS: Auto-detected language: {lang_code} ({_lang_name})"
                                             )
-                                            mem = self._memory.load_memory(
-                                                self.user_name
-                                            )
-                                            mem.setdefault("identity", {})[
-                                                "language"
-                                            ] = lang_code
-                                            self._memory.save_memory(
-                                                self.user_name, mem
-                                            )
+                                            update_memory({
+                                                "identity": {
+                                                    "language": {
+                                                        "value": _lang_name,
+                                                    }
+                                                }
+                                            })
                                     except Exception:
                                         pass
 

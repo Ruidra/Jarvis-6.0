@@ -11,6 +11,10 @@
     "city": {
       "value": "Barguna, Bangladesh",
       "updated": "2026-08-17"
+    },
+    "language": {
+      "value": "Bangla",
+      "updated": "2026-08-21"
     }
   },
   "preferences": {},

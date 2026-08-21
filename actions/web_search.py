@@ -1,6 +1,8 @@
 #web_search.py
 import json
 import sys
+import threading
+import time
 from pathlib import Path
 
 def _get_base_dir() -> Path:
@@ -12,10 +14,27 @@ def _get_base_dir() -> Path:
 BASE_DIR        = _get_base_dir()
 API_CONFIG_PATH = BASE_DIR / "config" / "api_keys.json"
 
+# Cache the API key so we don't read the file on every call
+_api_key_cache: str | None = None
+_api_key_cache_ts: float = 0.0
+_api_key_lock = threading.Lock()
+
 
 def _get_api_key() -> str:
-    with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)["gemini_api_key"]
+    """Return the Gemini API key, caching it for 60s to avoid repeated file I/O."""
+    global _api_key_cache, _api_key_cache_ts
+    with _api_key_lock:
+        if _api_key_cache and (time.time() - _api_key_cache_ts < 60):
+            return _api_key_cache
+        try:
+            _api_key_cache = json.loads(
+                API_CONFIG_PATH.read_text(encoding="utf-8")
+            )["gemini_api_key"]
+            _api_key_cache_ts = time.time()
+        except Exception:
+            _api_key_cache = ""
+            _api_key_cache_ts = time.time()
+        return _api_key_cache
 
 
 def _gemini_search(query: str) -> str:

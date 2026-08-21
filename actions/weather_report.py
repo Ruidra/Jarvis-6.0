@@ -10,7 +10,6 @@ stored home city from memory (``location.home_city`` or ``identity.city``).
 """
 
 import json
-import webbrowser
 from urllib.parse import quote_plus
 
 try:
@@ -151,27 +150,14 @@ def weather_action(
                 pass
         return api_result
 
-    # Fallback: open a browser search (original behaviour)
-    search_query = f"weather in {city} {when}"
-    url = f"https://www.google.com/search?q={quote_plus(search_query)}"
-    try:
-        opened = webbrowser.open(url)
-        if not opened:
-            raise RuntimeError("webbrowser.open returned False")
-    except Exception as e:
-        msg = f"Sir, I couldn't open the browser or reach the weather service: {e}"
-        _log(msg, player)
-        return msg
-
-    msg = f"Showing the weather for {city}, {when}, sir."
+    # No API key or API failed — return an error instead of opening browser
+    msg = f"Sir, I couldn't fetch live weather for {city}. Please ensure a weather API key is configured."
     _log(msg, player)
-
     if session_memory:
         try:
-            session_memory.set_last_search(query=search_query, response=msg)
+            session_memory.set_last_search(query=f"weather {city} {when}", response=msg)
         except Exception:
             pass
-
     return msg
 
 

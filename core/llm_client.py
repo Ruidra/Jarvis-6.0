@@ -79,7 +79,7 @@ def ensure_ollama_running(timeout: int = 15) -> bool:
             else:
                 print(f"[LLM] Server at {url} returned non-200.  Is it running?")
             return ok
-        except Exception as e:
+        except Exception:
             print(
                 f"[LLM] Cannot reach OpenAI-compatible server at {url}.\n"
                 "      Make sure LM Studio / LocalAI / Jan is running and the server is started."
@@ -329,44 +329,73 @@ def call_llm(
 
 
 def call_llm_text(
-    prompt:  str,
-    system:  str | None = None,
-    model:   str | None = None,
-    timeout: int = 120,
+    prompt:     str,
+    system:     str | None = None,
+    model:      str | None = None,
+    max_tokens: int = 600,
+    timeout:    int = 120,
 ) -> str:
     """
     Simple text-only generation (no tools).
+    Routes to Ollama or OpenAI-compatible backend based on config.
     Used by planner, executor, error_handler, code_helper, dev_agent.
     """
     url, default_model = get_llm_settings()
-    endpoint = f"{url}/api/chat"
-    m        = model or default_model
+    provider = get_llm_provider()
+    m = model or default_model
 
     messages: list[dict] = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
 
-    payload = {"model": m, "messages": messages, "stream": False, "keep_alive": -1, "options": {"num_predict": 600}}
-
-    try:
-        resp = requests.post(endpoint, json=payload, timeout=timeout)
-        resp.raise_for_status()
-        return (resp.json().get("message", {}).get("content") or "").strip()
-    except requests.exceptions.ConnectionError:
-        if ensure_ollama_running():
-            try:
-                resp = requests.post(endpoint, json=payload, timeout=timeout)
-                resp.raise_for_status()
-                return (resp.json().get("message", {}).get("content") or "").strip()
-            except Exception:
-                pass
-        raise RuntimeError(
-            f"Cannot connect to Ollama at {url}. "
-            "Make sure Ollama is installed and run: ollama serve"
-        )
-    except Exception as e:
-        raise RuntimeError(f"LLM text call failed: {e}")
+    if provider == "openai":
+        endpoint = f"{url}/v1/chat/completions"
+        payload = {
+            "model": m,
+            "messages": messages,
+            "stream": False,
+            "max_tokens": max_tokens,
+        }
+        try:
+            resp = requests.post(endpoint, json=payload, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            return (data.get("choices", [{}])[0]
+                    .get("message", {})
+                    .get("content") or "").strip()
+        except requests.exceptions.ConnectionError:
+            raise RuntimeError(
+                f"Cannot reach OpenAI-compatible server at {url}.\n"
+                "Make sure LM Studio / LocalAI / Jan is running and the server is started."
+            )
+        except Exception as e:
+            raise RuntimeError(f"OpenAI-compatible LLM call failed: {e}")
+    else:
+        # Ollama backend
+        endpoint = f"{url}/api/chat"
+        payload = {
+            "model": m, "messages": messages, "stream": False,
+            "keep_alive": -1, "options": {"num_predict": max_tokens},
+        }
+        try:
+            resp = requests.post(endpoint, json=payload, timeout=timeout)
+            resp.raise_for_status()
+            return (resp.json().get("message", {}).get("content") or "").strip()
+        except requests.exceptions.ConnectionError:
+            if ensure_ollama_running():
+                try:
+                    resp = requests.post(endpoint, json=payload, timeout=timeout)
+                    resp.raise_for_status()
+                    return (resp.json().get("message", {}).get("content") or "").strip()
+                except Exception:
+                    pass
+            raise RuntimeError(
+                f"Cannot connect to Ollama at {url}. "
+                "Make sure Ollama is installed and run: ollama serve"
+            )
+        except Exception as e:
+            raise RuntimeError(f"LLM text call failed: {e}")
 
 
 def _stream_openai(

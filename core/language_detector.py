@@ -132,17 +132,32 @@ _LANGUAGE_PREFIXES: dict[str, set[str]] = {
     "ru": {"что", "как", "где", "кто", "мне", "ник", "все"},
 }
 
-# Prefix stems for partial matching (catches inflected forms)
+# Prefix stems for partial matching on out-of-vocabulary words. Stem length >= 3.
 _LANGUAGE_PREFIXES: dict[str, set[str]] = {
-    "en": {"th", "he", "an", "re", "in", "on", "at", "to", "fo", "wi"},
-    "es": {"est", "hab", "com", "cóm", "qu", "pod", "pod", "pued", "dir"},
-    "fr": {"par", "sou", "tou", "com", "qu", "pou", "vou", "ser", "ett"},
-    "de": {"geh", "kom", "spre", "mac", "find", "seh", "hal", "bring"},
-    "it": {"com", "qu", "pot", "stell", "mett", "mand"},
-    "pt": {"com", "est", "fala", "pod", "têm", "tend"},
-    "nl": {"wer", "zij", "hun", "dat", "die", "hij", "zij"},
+    "en": {"the", "ing", "ion", "ver", "wit", "out", "pre", "sub"},
+    "es": {"est", "hab", "com", "pod", "pued", "dir", "cual", "much"},
+    "fr": {"par", "sou", "tou", "com", "pou", "vou", "ser", "ett", "ment"},
+    "de": {"geh", "kom", "spre", "mac", "find", "seh", "hal", "bring", "lich"},
+    "it": {"com", "qu", "pot", "stell", "mand", "cher", "dir"},
+    "pt": {"com", "est", "fala", "pod", "sao", "tend", "mun", "cresc"},
+    "nl": {"wer", "zij", "hun", "dat", "die", "mijn", "jouw"},
     "ru": {"что", "как", "где", "кто", "мне", "ник", "все"},
-    "bn": {"আমি", "তুমি", "সে", "আমরা", "কেমন", "কোথায়", "কেন", "কি", "নাই", "আছে"},
+}
+
+# Map ISO 639-1 codes → human-readable names (used in system prompts / TTS config)
+_LANGUAGE_NAMES: dict[str, str] = {
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "nl": "Dutch",
+    "ru": "Russian",
+    "ja": "Japanese",
+    "zh": "Chinese",
+    "ko": "Korean",
+    "bn": "Bangla",
 }
 
 
@@ -158,8 +173,8 @@ _TRIGRAM_WEIGHTS: dict[str, dict[str, float]] = {
         " th": 1.1, "he ": 1.2, "ver": 0.6, "wit": 0.5, " on": 0.7,
     },
     "es": {
-        "que": 2.5, "ción": 2.0, "ción": 1.8, "dad": 1.2, "est": 0.9,
-        " de": 1.3, "la ": 1.0, "los": 0.8, "ras": 0.7, "ión": 1.5,
+        "que": 2.5, "cion": 2.0, "dad": 1.2, "est": 0.9,
+        " de": 1.3, "la ": 1.0, "los": 0.8, "ras": 0.7, "ion": 1.5,
     },
     "fr": {
         "ent": 1.9, "ant": 1.7, "les": 1.6, " que": 1.4, " de": 1.3,
@@ -167,28 +182,27 @@ _TRIGRAM_WEIGHTS: dict[str, dict[str, float]] = {
     },
     "de": {
         "und": 1.8, "den": 1.5, "ten": 1.4, "cht": 1.3, "schen": 1.1,
-        "en ": 0.8, "ge ": 0.7, "ten": 1.2, "ung": 0.6, "gen": 0.9,
+        "en ": 0.8, "ge ": 0.7, "ung": 0.6, "gen": 0.9,
     },
     "it": {
         "che": 2.2, "cia": 1.8, "ion": 1.6, "one": 1.5, "ere": 1.3,
         "sta": 1.1, "que": 0.8, "zio": 0.5, "oni": 0.4, "nte": 1.0,
     },
     "pt": {
-        "que": 2.0, "ção": 1.8, "ção": 1.6, "dad": 1.1, "ões": 0.9,
-        " est": 0.8, "com": 0.7, "pro": 0.6, "ção": 0.5, "são": 0.6,
+        "que": 2.0, "cao": 1.8, "dad": 1.1, "oes": 0.9,
+        " est": 0.8, "com": 0.7, "pro": 0.6, "sao": 0.6,
     },
     "nl": {
         "de ": 1.5, "en ": 1.4, "den": 1.2, "van": 1.0, "het": 1.1,
         "een": 0.9, "ing": 0.8, "nde": 0.7, "sch": 0.6, "ijd": 0.5,
     },
     "ru": {
-        "ост": 1.5, "ый ": 1.2, "ие ": 0.9, "тьс": 0.7, "ость": 0.7,
-        "ый ": 0.9, "тьс": 0.5, "ие ": 0.6, "ова": 0.4, "ста": 0.5,
+        "ost": 1.5, "yy ": 1.2, "ie ": 0.9, "tsc": 0.7,
+        "ova": 0.4, "sta": 0.5, "est": 0.3,
     },
     "bn": {
         "আমি": 2.0, "আছে": 1.8, "কেমন": 1.6, "হবে": 1.5, "কোথা": 1.4,
-        "কেন": 1.3, "কি": 1.2, "নাই": 1.1, "করা": 1.0, "হওয়া": 0.9,
-        "যাও": 0.8, "বলো": 0.8, "ভালো": 0.7, "খারাপ": 0.6, "সময়": 0.6,
+        "কেন": 1.3, "কি": 1.2, "নাই": 1.1, "করা": 1.0, "হয়": 0.9,
     },
 }
 
@@ -370,7 +384,7 @@ class LanguageDetector:
         self.is_reliable = confidence >= self._confidence_threshold
 
         if not self.is_reliable:
-            return "bn"  # safe default for ambiguous short utterances
+            return "en"  # safe default for ambiguous short utterances
 
         return best_lang
 
@@ -384,10 +398,20 @@ class LanguageDetector:
                 is_reliable=self.is_reliable,
             )
         return DetectionResult(
-            language="bn",
+            language="en",
             confidence=0.30,
             is_reliable=False,
         )
 
+    @staticmethod
+    def language_name(code: str) -> str:
+        """Map an ISO 639-1 code to a human-readable name ('bn' → 'Bangla')."""
+        return _LANGUAGE_NAMES.get(code, code)
 
-__all__ = ["LanguageDetector", "DetectionResult"]
+
+__all__ = ["LanguageDetector", "DetectionResult", "language_name"]
+
+
+def language_name(code: str) -> str:
+    """Map an ISO 639-1 code to a human-readable name ('bn' → 'Bangla')."""
+    return _LANGUAGE_NAMES.get(code, code)
