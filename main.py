@@ -100,6 +100,7 @@ from core.emotion_engine import EmotionEngine
 from core.voice_emotion import VoiceEmotionAnalyzer
 from core.language_detector import LanguageDetector
 from core.context_compressor import ContextCompressor
+from core.proactive_audio import ProactiveAudio
 from core.learning import learner as _learner
 from core.fast_cache import cache as _fast_cache
 from core.prosody_speaker import ProsodySpeaker
@@ -1330,6 +1331,12 @@ class JarvisLive:
         # [speak:...] tag). Off by default so the fast Gemini native audio is kept.
         self._emotion_voice = False
         self._emotion_speak = None  # (tag, prosody) for the current reply
+
+        # JARVIS 6.3 — Proactive Audio: suppress replies when speech isn't
+        # addressed to JARVIS (TV in background, someone talking to another person,
+        # phone call, etc.)
+        self._proactive = ProactiveAudio()
+        self._proactive_suppress = False  # set True when a non-addressed utterance is detected
 
     def _make_remote_key(self):
         """Called from Qt main thread when user presses Remote Control."""
@@ -2802,6 +2809,27 @@ class JarvisLive:
                                 in_buf.append(txt)
                                 self._last_user_speech = time.monotonic()
                                 self._session_turns += 1
+
+                                # JARVIS 6.3 — Proactive Audio: check if speech
+                                # is addressed to JARVIS. If not (TV dialogue,
+                                # someone talking to another person, phone call),
+                                # suppress the response and go back to sleep.
+                                if self._jarvis_state in ("LISTENING", "LOCKED"):
+                                    if not self._proactive.is_addressed(txt):
+                                        self.ui.write_log(
+                                            "SYS: Speech not addressed to JARVIS — suppressing"
+                                        )
+                                        self._proactive_suppress = True
+                                        # Interrupt any in-progress model response
+                                        self.interrupt()
+                                        # Go back to OFFLINE (sleep)
+                                        if self._wake_engine is not None:
+                                            self._wake_engine.disarm()
+                                        self._set_jarvis_state("OFFLINE")
+                                        self._maybe_exit_fullscreen()
+                                        in_buf = []
+                                        out_buf = []
+                                        continue
 
                                 # JARVIS 6.3 — Silent language memory: detect language
                                 # from speech on first use, then persist to memory.
