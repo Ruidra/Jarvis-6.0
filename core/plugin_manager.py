@@ -46,10 +46,8 @@ class PluginManager:
     def __init__(self, plugin_dir: str | Path | None = None) -> None:
         self.plugin_dir = Path(plugin_dir) if plugin_dir else (get_base_dir() / "plugins")
         self.plugins: dict[str, dict[str, Any]] = {}
-        # filename_stem -> human-readable reason a plugin failed to load/validate.
-        # Surfaced by the registry so a bad plugin shows up as BROKEN instead of
-        # vanishing silently.
         self.broken: dict[str, str] = {}
+        self._trigger_cache: dict[str, str] = {}  # intent_lower → plugin_name
 
     def discover(self) -> list[str]:
         """Load every valid plugin module from ``plugin_dir``. Returns plugin names.
@@ -61,6 +59,7 @@ class PluginManager:
         """
         self.plugins.clear()
         self.broken.clear()
+        self._trigger_cache.clear()
         if not self.plugin_dir.exists():
             logger.warning("Plugin directory missing: %s", self.plugin_dir)
             return []
@@ -129,6 +128,27 @@ class PluginManager:
     def list_triggers(self) -> dict[str, list[str]]:
         return {name: p["meta"].get("triggers", []) for name, p in self.plugins.items()}
 
+    def _match(self, intent_l: str) -> str | None:
+        """Return the first plugin name whose triggers match *intent_l*, or None.
+
+        Uses the trigger cache for O(1) lookup on repeated intents, falling back
+        to linear scan for uncached intents.
+        """
+        cached = self._trigger_cache.get(intent_l)
+        if cached is not None and cached in self.plugins:
+            return cached
+        for name, p in self.plugins.items():
+            meta = p["meta"]
+            if intent_l == name.lower():
+                self._trigger_cache[intent_l] = name
+                return name
+            triggers = [t.lower() for t in meta.get("triggers", [])]
+            if any(t in intent_l for t in triggers):
+                self._trigger_cache[intent_l] = name
+                return name
+        self._trigger_cache[intent_l] = ""  # cache miss
+        return None
+
     def dispatch(self, intent: str, args: dict | None = None, ctx: dict | None = None) -> Any:
         """Return the first matching plugin handler's result, else ``None``.
 
@@ -138,13 +158,13 @@ class PluginManager:
         if not self.plugins:
             self.discover()
         intent_l = (intent or "").lower()
-        for name, p in self.plugins.items():
-            meta = p["meta"]
-            triggers = [t.lower() for t in meta.get("triggers", [])]
-            if intent_l == name.lower() or any(t in intent_l for t in triggers):
-                try:
-                    return p["handle"](intent, args or {}, ctx or {})
-                except Exception as exc:  # noqa: BLE001 - isolate plugin failures
-                    logger.error("Plugin '%s' handler failed: %s", name, exc)
-                    return None
+        name = self._match(intent_l)
+        if name is None:
+            return None
+        p = self.plugins[name]
+        try:
+            return p["handle"](intent, args or {}, ctx or {})
+        except Exception as exc:  # noqa: BLE001 - isolate plugin failures
+            logger.error("Plugin '%s' handler failed: %s", name, exc)
+            return None
         return None

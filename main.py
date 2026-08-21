@@ -3627,7 +3627,56 @@ class JarvisLive:
             print(f"[JARVIS] Reconnecting in {delay}s...")
             await asyncio.sleep(delay)
 
+def _startup_health_check() -> list[str]:
+    """Run lightweight checks at startup; return list of warnings."""
+    import json as _json
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    warnings: list[str] = []
+    base = _Path(_sys.executable).parent if getattr(_sys, "frozen", False) \
+        else _Path(__file__).resolve().parent
+
+    # Check config directory exists
+    cfg_dir = base / "config"
+    if not cfg_dir.exists():
+        warnings.append(f"Config directory missing: {cfg_dir}")
+
+    # Check API keys file
+    api_keys_path = cfg_dir / "api_keys.json"
+    if not api_keys_path.exists():
+        warnings.append("config/api_keys.json not found — local LLM features will be unavailable.")
+    else:
+        try:
+            cfg = _json.loads(api_keys_path.read_text(encoding="utf-8"))
+            if not cfg.get("gemini_api_key"):
+                warnings.append("gemini_api_key not set — voice/weather/search may be limited.")
+            if not cfg.get("llm_model"):
+                pass  # uses default
+        except Exception:
+            warnings.append("config/api_keys.json is invalid JSON — please fix it.")
+
+    # Check memory directory
+    mem_dir = base / "memory"
+    if not mem_dir.exists():
+        warnings.append(f"Memory directory missing: {mem_dir}")
+
+    # Check plugins directory
+    plug_dir = base / "plugins"
+    if not plug_dir.exists():
+        warnings.append(f"Plugins directory missing: {plug_dir}")
+
+    return warnings
+
+
 def main():
+    # ── Lightweight startup health check ──────────────────────────────────────
+    _warn = _startup_health_check()
+    if _warn:
+        print("[JARVIS] Startup diagnostics:")
+        for _w in _warn:
+            print(f"  ⚠ {_w}")
+
     ui = JarvisUI("face.png")
 
     def runner():

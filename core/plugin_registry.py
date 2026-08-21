@@ -41,6 +41,7 @@ class PluginRegistry:
         self._watcher: threading.Thread | None = None
         self._stop = threading.Event()
         self._lock = threading.Lock()
+        self._trigger_cache: dict[str, str] = {}  # intent_lower → plugin_name
 
     # ── registry persistence ───────────────────────────────────────────────────
     def _load_state(self) -> None:
@@ -86,6 +87,8 @@ class PluginRegistry:
                     "triggers": meta.get("triggers", []),
                 }
                 self._state["enabled"].setdefault(name, True)
+            # Clear trigger cache on reload
+            self._trigger_cache.clear()
             # prune removed plugins
             for name in list(self._state["installed"]):
                 if name not in self.manager.plugins:
@@ -117,17 +120,35 @@ class PluginRegistry:
         """Dispatch only to enabled plugins."""
         if not self.manager.plugins:
             self.discover()
+        intent_l = (intent or "").lower()
+
+        # Check cache first
+        cached = self._trigger_cache.get(intent_l)
+        if cached is not None:
+            if not cached:
+                return None
+            if cached in self.manager.plugins and self.is_enabled(cached):
+                try:
+                    return self.manager.plugins[cached]["handle"](intent, args or {}, ctx or {})
+                except Exception as exc:
+                    logger.error("Plugin '%s' failed: %s", cached, exc)
+                    return None
+            return None
+
+        # Linear scan with caching
         for name, p in self.manager.plugins.items():
             if not self.is_enabled(name):
                 continue
             triggers = [t.lower() for t in p["meta"].get("triggers", [])]
-            intent_l = (intent or "").lower()
             if intent_l == name.lower() or any(t in intent_l for t in triggers):
+                self._trigger_cache[intent_l] = name
                 try:
                     return p["handle"](intent, args or {}, ctx or {})
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     logger.error("Plugin '%s' failed: %s", name, exc)
                     return None
+
+        self._trigger_cache[intent_l] = ""  # cache miss
         return None
 
     # ── hot reload ─────────────────────────────────────────────────────────────

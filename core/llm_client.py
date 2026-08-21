@@ -396,6 +396,14 @@ def call_llm_text(
             )
         except Exception as e:
             raise RuntimeError(f"LLM text call failed: {e}")
+        # ── Fallback: Gemini (if no local LLM is available) ───────────────────
+        # This lets Jarvis keep working even when Ollama isn't running.
+        try:
+            from core.gemini_text import generate
+
+            return generate(prompt, system=system, timeout=timeout) or ""
+        except Exception:  # noqa: BLE001
+            raise
 
 
 def _stream_openai(
