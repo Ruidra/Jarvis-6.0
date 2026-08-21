@@ -1,0 +1,25 @@
+{
+  "lessons": [],
+  "optimisations": [
+    {
+      "text": "Tool 'test_tool' failed 4 times this session. Check permissions or configuration.",
+      "ts": 1787291947.7379944,
+      "date": "2026-08-21"
+    },
+    {
+      "text": "User asked for retries 2x — review response accuracy.",
+      "ts": 1787291947.7379944,
+      "date": "2026-08-21"
+    },
+    {
+      "text": "Tool 'test_tool' failed 4 times this session. Check permissions or configuration.",
+      "ts": 1787291975.5705402,
+      "date": "2026-08-21"
+    },
+    {
+      "text": "User asked for retries 2x — review response accuracy.",
+      "ts": 1787291975.5705402,
+      "date": "2026-08-21"
+    }
+  ]
+}

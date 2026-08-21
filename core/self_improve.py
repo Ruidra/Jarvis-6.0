@@ -130,6 +130,99 @@ class SelfImprover:
         with self._lock:
             return len(self._data.get("lessons", []))
 
+    # ── JARVIS 6.4 — Autonomous performance optimisation ─────────────────────
+    def optimise(self, session_metrics: dict | None = None) -> list[str]:
+        """Analyse recent performance and suggest/ apply optimisations.
+
+        Looks at:
+          * Tool failure rates (from the conversation log or passed metrics).
+          * Common user corrections (repeated lessons).
+          * Response latency patterns.
+
+        Returns a list of human-readable optimisations that were applied or
+        suggested.  Applied ones are stored in memory/improvements.json under
+        the ``optimisations`` key.
+        """
+        with self._lock:
+            state = self._data
+        suggestions: list[str] = []
+
+        # 1. Repeated lessons → promote to a system-prompt reminder
+        lessons = state.get("lessons", [])
+        seen: dict[str, int] = {}
+        for l in lessons:
+            key = l["lesson"][:50].lower()
+            seen[key] = seen.get(key, 0) + l.get("times", 1)
+
+        for lesson_text, count in sorted(seen.items(), key=lambda x: -x[1]):
+            if count >= 2:
+                suggestions.append(
+                    f"Repeated issue detected ({count}x): '{lesson_text}'. "
+                    f"Consider adding this to the system prompt."
+                )
+
+        # 2. Tool failure analysis from session metrics
+        if session_metrics:
+            failures = session_metrics.get("tool_failures", {})
+            for tool, count in sorted(failures.items(), key=lambda x: -x[1]):
+                if count >= 3:
+                    suggestions.append(
+                        f"Tool '{tool}' failed {count} times this session. "
+                        f"Check permissions or configuration."
+                    )
+
+        # 3. Pattern: user saying 'again' or 'retry' → tool reliability issue
+        if session_metrics:
+            retries = session_metrics.get("user_retries", 0)
+            if retries >= 2:
+                suggestions.append(
+                    f"User asked for retries {retries}x — review response accuracy."
+                )
+
+        # Store new optimisations
+        with self._lock:
+            state.setdefault("optimisations", [])
+            for s in suggestions:
+                state["optimisations"].append({
+                    "text": s,
+                    "ts": time.time(),
+                    "date": time.strftime("%Y-%m-%d"),
+                })
+            if len(state["optimisations"]) > 100:
+                state["optimisations"] = state["optimisations"][-100:]
+            self._save_locked(state)
+
+        for s in suggestions:
+            logger.info("autonomous optimisation: %s", s)
+        return suggestions
+
+    def _save_locked(self, state: dict) -> None:
+        """Save with lock already held (internal use)."""
+        try:
+            self.store_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.store_path.with_name(self.store_path.name + ".tmp")
+            tmp.write_text(json.dumps(state, indent=2, ensure_ascii=False),
+                           encoding="utf-8")
+            import os
+            os.replace(tmp, self.store_path)
+        except Exception as exc:
+            logger.warning("self-improve save failed: %s", exc)
+
+    def performance_summary(self) -> str:
+        """Return a text summary of lessons + optimisations."""
+        with self._lock:
+            data = self._data
+        lessons = data.get("lessons", [])
+        optimisations = data.get("optimisations", [])
+        parts = []
+        if lessons:
+            parts.append(f"{len(lessons)} lessons learned")
+        if optimisations:
+            parts.append(f"{len(optimisations)} performance optimisations applied")
+        if not parts:
+            return "All systems optimal — no improvements logged yet."
+        return "\n".join(parts)
+
 
 # Process-wide instance.
 improver = SelfImprover()

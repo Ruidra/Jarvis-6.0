@@ -101,6 +101,9 @@ from core.voice_emotion import VoiceEmotionAnalyzer
 from core.language_detector import LanguageDetector
 from core.context_compressor import ContextCompressor
 from core.proactive_audio import ProactiveAudio
+from core.multimodal import MultimodalContext
+from core.autonomy import AutonomyEngine
+from core.domain_router import DomainRouter
 from core.learning import learner as _learner
 from core.fast_cache import cache as _fast_cache
 from core.prosody_speaker import ProsodySpeaker
@@ -1183,7 +1186,68 @@ TOOL_DECLARATIONS = [
             "specialist agents, and installed plugins. Use when the user asks "
             "'what can you do', 'what are your features', or 'help'."
         ),
-        "parameters": {"type": "OBJECT", "properties": {}, "required": []},
+         "parameters": {"type": "OBJECT", "properties": {}, "required": []},
+     },
+    {
+        "name": "autonomy",
+        "description": (
+            "JARVIS 6.4 Autonomous Planning Engine. For complex multi-step goals that "
+            "require independent planning and execution. Actions: 'plan' (decompose goal "
+            "into ordered steps — pass 'goal'), 'execute' (run a specific step by id), "
+            "'progress' (get current status), 'complete' (mark plan done), 'abort' "
+            "(cancel current plan), 'list' (show all stored plans). Use when the user "
+            "gives a complex multi-part instruction that needs decomposition."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {"type": "STRING", "description": "plan | execute | progress | complete | abort | list"},
+                "goal": {"type": "STRING", "description": "The high-level goal to plan for action='plan'"},
+                "step_id": {"type": "INTEGER", "description": "Step index to execute for action='execute'"},
+            },
+            "required": ["action"],
+        },
+    },
+    {
+        "name": "domain",
+        "description": (
+            "JARVIS 6.4 Deep Domain Integration Router. Interact with smart home "
+            "(Home Assistant / Google Home / Matter), enterprise (Slack / Teams / "
+            "Notion / GSuite), health (Fitbit / Apple Health / Garmin), and legal "
+            "(Clio / MyCase) systems. Actions: 'status' (show integration readiness), "
+            "'smarthome_turn_on', 'smarthome_climate', 'enterprise_notify', "
+            "'health_activity', 'legal_deadline'. Requires credentials configured."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {"type": "STRING", "description": "status | smarthome_turn_on | smarthome_climate | enterprise_notify | health_activity | legal_deadline"},
+                "device": {"type": "STRING", "description": "Device/entity name for smarthome actions"},
+                "temp": {"type": "STRING", "description": "Temperature for smarthome_climate"},
+                "service": {"type": "STRING", "description": "Enterprise service: slack | teams | notion"},
+                "message": {"type": "STRING", "description": "Message to send for enterprise_notify"},
+                "channel": {"type": "STRING", "description": "Channel/room for enterprise_notify"},
+            },
+            "required": ["action"],
+        },
+    },
+    {
+        "name": "perceive",
+        "description": (
+            "JARVIS 6.4 Real-time Multimodal Perception. Get a fused snapshot of the "
+            "current environment: microphone audio state (addressed speech, clap "
+            "detection, energy), vision (screen OCR, face detection, gestures, active "
+            "window), system resources (CPU, RAM, battery, network), and the latest "
+            "user text input. Use when JARVIS needs to know what's happening around "
+            "the user right now."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "detail": {"type": "STRING", "description": "summary (compact) | full (complete snapshot)"},
+            },
+            "required": [],
+        },
     },
 ]
 
@@ -1335,6 +1399,16 @@ class JarvisLive:
         # JARVIS 6.3 — Proactive Audio module (available but not suppressing).
         # The check runs on full transcripts at turn_complete for logging only.
         self._proactive = ProactiveAudio()
+
+        # JARVIS 6.4 — Advanced Autonomy: independent planning + execution engine
+        self._autonomy = AutonomyEngine()
+
+        # JARVIS 6.4 — Real-time Multimodal Perception: fused sensor context
+        self._multimodal = MultimodalContext(poll_interval=2.0)
+
+        # JARVIS 6.4 — Deep Domain Integration: smart home, enterprise, health, legal
+        self._domains = DomainRouter()
+
 
 
     def _make_remote_key(self):
@@ -1713,10 +1787,86 @@ class JarvisLive:
                 lines.append("Specialist agents: " + ", ".join(agents))
             if plugins:
                 lines.append("Plugins: " + ", ".join(plugins))
-            lines.append("Plus: emotions, learning, personas, focus mode, goals, motivation.")
+            lines.append("Plus: emotions, learning, personas, focus mode, goals, motivation, autonomy.")
             return "\n".join(lines)
         except Exception as exc:
             return f"Discovery error: {exc}"
+
+    def _tool_autonomy(self, args: dict) -> str:
+        """JARVIS 6.4 Autonomous Planning Engine."""
+        action = (args.get("action") or "").strip().lower()
+        if action == "plan":
+            goal = (args.get("goal") or "").strip()
+            if not goal:
+                return "Please provide a goal to plan."
+            steps = self._autonomy.plan(goal)
+            summary = "\n".join(f"  {s.idx}. {s.task}" + (f" [{s.tool}]" if s.tool else "") for s in steps)
+            return f"Autonomous plan for: '{goal}'\n{summary}\n\nUse autonomy(action='progress') to track."
+        elif action == "progress":
+            prog = self._autonomy.progress()
+            if prog.get("status") == "idle":
+                return "No active autonomous plan."
+            return f"Goal: {prog['goal']}\nProgress: {prog['progress']}\nFailed: {prog['failed']}"
+        elif action == "complete":
+            self._autonomy.complete()
+            return "Current autonomy plan marked complete."
+        elif action == "abort":
+            self._autonomy.abort()
+            return "Current autonomy plan aborted."
+        elif action == "list":
+            from core.json_store import read_json
+            state = read_json(self._autonomy.store.path, {})
+            plans = state.get("plans", [])
+            if not plans:
+                return "No stored autonomy plans."
+            lines = []
+            for p in plans[-5:]:
+                lines.append(f"• {p['goal']} [{p['status']}]")
+            return "\n".join(lines) or "No plans found."
+        elif action == "execute":
+            step_id = args.get("step_id")
+            step = None
+            if self._autonomy._active:
+                for s in self._autonomy._active.steps:
+                    if s.idx == step_id:
+                        step = s
+                        break
+            if not step:
+                return f"Step {step_id} not found in active plan."
+            result = self._autonomy.execute_step(step)
+            return f"Executed step {step.idx}: {step.task}\nResult: {result.get('output', result.get('error', 'done'))}"
+        return "Autonomy actions: plan(goal), execute(step_id), progress, complete, abort, list"
+
+    def _tool_domain(self, args: dict) -> str:
+        """JARVIS 6.4 Deep Domain Integration Router."""
+        action = (args.get("action") or "status").strip().lower()
+        statuses = self._domains.status()
+        if action == "status":
+            return "Domain Integration Status:\n" + "\n".join(f"  {k}: {v}" for k, v in statuses.items())
+        elif action == "smarthome_turn_on":
+            device = args.get("device", "")
+            return self._domains.smarthome.turn_on(device)
+        elif action == "smarthome_climate":
+            temp = args.get("temp", "")
+            return self._domains.smarthome.set_climate(float(temp))
+        elif action == "enterprise_notify":
+            service = args.get("service", "")
+            message = args.get("message", "")
+            channel = args.get("channel", "")
+            return self._domains.enterprise.notify(service, message, channel)
+        elif action == "health_activity":
+            return self._domains.health.steps_today()
+        elif action == "legal_deadline":
+            return self._domains.legal.next_deadline()
+        return "Domain actions: status, smarthome_turn_on, smarthome_climate, enterprise_notify, health_activity, legal_deadline"
+
+    def _tool_perceive(self, args: dict) -> str:
+        """JARVIS 6.4 Real-time Multimodal Perception."""
+        snap = self._multimodal.perceive()
+        detail = (args.get("detail") or "summary").strip().lower()
+        if detail == "full":
+            return f"Multimodal snapshot:\n{snap}"
+        return self._multimodal.describe_for_llm()
 
     def _tool_persona(self, args: dict) -> str:
         mode = (args.get("mode") or "").strip().lower()
@@ -1733,8 +1883,28 @@ class JarvisLive:
         try:
             if self._session_log:
                 _improver.reflect(self._session_log)
+            # JARVIS 6.4 — Autonomous self-improvement: analyse performance
+            metrics = self._collect_session_metrics()
+            _improver.optimise(session_metrics=metrics)
         except Exception as exc:
             logger.warning("self-improve failed: %s", exc)
+
+    def _collect_session_metrics(self) -> dict:
+        """Collect runtime metrics for autonomous optimisation."""
+        metrics: dict = {"tool_failures": {}, "user_retries": 0}
+        for entry in getattr(self, "_session_log", []):
+            if "[tool" in entry and "failed" in entry.lower():
+                # crude tool failure counting
+                import re
+                m = re.search(r"tool (\w+) failed", entry, re.I)
+                if m:
+                    tool_name = m.group(1)
+                    metrics["tool_failures"][tool_name] = (
+                        metrics["tool_failures"].get(tool_name, 0) + 1
+                    )
+            if "again" in entry.lower() or "retry" in entry.lower():
+                metrics["user_retries"] += 1
+        return metrics
 
     def speak_error(self, tool_name: str, error: str):
         short = str(error)[:120]
@@ -2441,6 +2611,17 @@ class JarvisLive:
 
         elif name == "discover":
             return self._tool_discover()
+
+
+        elif name == "autonomy":
+            return self._tool_autonomy(args)
+
+        elif name == "domain":
+            return self._tool_domain(args)
+
+        elif name == "perceive":
+            return self._tool_perceive(args)
+
 
         else:
             _res = await asyncio.to_thread(
@@ -3491,6 +3672,9 @@ class JarvisLive:
     async def run(self):
         self._loop = asyncio.get_event_loop()
         self._run_health_check()
+
+        # JARVIS 6.4 — Start multimodal background poller (system stats, etc.)
+        self._multimodal.start()
 
         # Start dashboard (optional — needs: pip install fastapi "uvicorn[standard]" cryptography)
         try:

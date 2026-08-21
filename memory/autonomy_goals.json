@@ -1,0 +1,23 @@
+{
+  "plans": [
+    {
+      "goal": "Organize my project files and email Sarah the summary",
+      "created": 1787291975.5624611,
+      "updated": 1787291975.5624611,
+      "status": "in_progress",
+      "steps": [
+        {
+          "idx": 1,
+          "task": "Organize my project files and email Sarah the summary",
+          "deps": [],
+          "tool": "",
+          "params": {},
+          "max_replans": 2,
+          "status": "pending",
+          "result": "",
+          "attempts": 0
+        }
+      ]
+    }
+  ]
+}
