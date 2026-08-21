@@ -306,6 +306,10 @@ DEFAULT_WAKE_PHRASES = [
     "hey jarvis",
     "wake up jarvis",
     "jarvis wake up",
+    "walk up jarvis",     # common mispronunciation of "wake"
+    "walk up",
+    "hey jarv",           # short / accented variants
+    "jarv",
 ]
 
 # Small English model used for exact wake-phrase matching (~40 MB, one-time).

@@ -2403,6 +2403,60 @@
       "label": "negative",
       "intensity": 0.5,
       "note": ""
+    },
+    {
+      "ts": 1787285655.5703979,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787285659.605316,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787285661.623557,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "anxious",
+      "label": "negative",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787285776.7392836,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "sad",
+      "label": "negative",
+      "intensity": 0.71,
+      "note": ""
+    },
+    {
+      "ts": 1787285780.2230163,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "happy",
+      "label": "positive",
+      "intensity": 0.5,
+      "note": ""
+    },
+    {
+      "ts": 1787285781.9319615,
+      "date": "2026-08-21",
+      "user": "Boss",
+      "dominant": "anxious",
+      "label": "negative",
+      "intensity": 0.5,
+      "note": ""
     }
   ]
 }
