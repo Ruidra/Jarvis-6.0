@@ -196,16 +196,16 @@
   "corrections": [],
   "habits": {
     "browser_control": 4,
-    "web_search": 1,
+    "web_search": 2,
     "recall_memory": 2,
     "youtube_video": 5,
     "wikipedia": 1,
     "screen_process": 2,
     "shutdown_jarvis": 6,
-    "weather_report": 5,
+    "weather_report": 6,
     "power_tools": 6,
     "god_mode": 3,
-    "discover": 2,
+    "discover": 3,
     "open_app": 3,
     "computer_settings": 7,
     "computer_control": 1,
@@ -214,7 +214,8 @@
     "system_status": 1,
     "face_recognize": 2,
     "learn": 2,
-    "plugin_manager": 1
+    "plugin_manager": 1,
+    "research": 2
   },
   "history": []
 }
