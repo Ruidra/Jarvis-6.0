@@ -94,6 +94,7 @@ from config import (
     CLAP_ENABLED, CLAP_SENSITIVITY, CLAP_COUNT, CLAP_WINDOW, CLAP_COOLDOWN,
     WAKE_TIMEOUT, WAKE_WORDS, WAKE_REQUIRE_CLAP, WAKE_BEEP,
     WAKE_FULLSCREEN, WAKE_BOOT_DELAY, WAKE_GREETING_INSTANT,
+    SLEEP_CONFIRM_TIMEOUT, ASK_SLEEP_CONFIRMATION,
 )
 from core.wake import WakeEngine
 from core.emotion_engine import EmotionEngine
@@ -1333,10 +1334,13 @@ class JarvisLive:
         self._emotion_speak = None  # (tag, prosody) for the current reply
 
         # JARVIS 6.3 — Proactive Audio: suppress replies when speech isn't
-        # addressed to JARVIS (TV in background, someone talking to another person,
+        # addressed to JARVIS (TV dialogue, someone talking to another person,
         # phone call, etc.)
         self._proactive = ProactiveAudio()
-        self._proactive_suppress = False  # set True when a non-addressed utterance is detected
+        self._proactive_addressed = False  # True when address term detected in this turn
+        self._awaiting_sleep_confirm = False  # True after asking "may I go to sleep?"
+        self._sleep_confirm_deadline: float | None = None  # monotonic deadline
+
 
     def _make_remote_key(self):
         """Called from Qt main thread when user presses Remote Control."""
@@ -1633,6 +1637,49 @@ class JarvisLive:
                     handle.cancel()
             except Exception:
                 pass
+
+    def _ask_sleep_confirmation(self) -> None:
+        """JARVIS 6.3 — Ask the user if JARVIS may go back to sleep.
+
+        After completing a turn in voice mode, JARVIS asks 'May I go to sleep?'
+        and waits for a yes/no reply. If 'yes' → goes OFFLINE. If 'no' or any
+        other speech → stays LISTENING. Times out after SLEEP_CONFIRM_TIMEOUT
+        seconds of silence, defaulting to sleep.
+        """
+        if not self.session or not ASK_SLEEP_CONFIRMATION:
+            return
+        self._awaiting_sleep_confirm = True
+        self._sleep_confirm_deadline = time.monotonic() + SLEEP_CONFIRM_TIMEOUT
+        self.ui.write_log("SYS: Asking — may I go to sleep?")
+        try:
+            asyncio.run_coroutine_threadsafe(
+                self.session.send_client_content(
+                    turns={"parts": [{"text": "May I go to sleep?"}]},
+                    turn_complete=True,
+                ),
+                self._loop,
+            )
+        except Exception as e:
+            print(f"[JARVIS] sleep-confirmation send failed: {e}")
+
+    def _handle_sleep_response(self, text: str) -> None:
+        """Process the user's yes/no answer to 'may I go to sleep?'."""
+        self._awaiting_sleep_confirm = False
+        if self._sleep_confirm_deadline:
+            self._sleep_confirm_deadline = None
+        tl = text.strip().lower()
+        if any(w in tl for w in ("yes", "yeah", "sure", "ok", "okay", "please do", "go ahead")):
+            self._set_jarvis_state("OFFLINE")
+            self.ui.write_log("SYS: Going to sleep as requested")
+            self._maybe_exit_fullscreen()
+        elif any(w in tl for w in ("no", "nah", "no thanks", "stay", "keep going")):
+            self.ui.write_log("SYS: Staying awake")
+            # Re-arm the wake engine so a future clap + phrase can re-wake
+            if self._wake_engine is not None:
+                self._wake_engine.disarm()
+        else:
+            # Unrecognised response — default to staying awake
+            self.ui.write_log("SYS: Staying awake (unrecognised response)")
 
     async def _inject_context_summary(self, summary: str) -> None:
         """Inject a compressed context summary into the Gemini Live session.
@@ -2771,6 +2818,17 @@ class JarvisLive:
 
         try:
             while True:
+                # JARVIS 6.3 — Proactive Audio: check if sleep confirmation timed out
+                if (self._awaiting_sleep_confirm and self._sleep_confirm_deadline
+                        and time.monotonic() > self._sleep_confirm_deadline):
+                    self.ui.write_log("SYS: No response to sleep prompt — going to sleep")
+                    self._awaiting_sleep_confirm = False
+                    self._sleep_confirm_deadline = None
+                    self._set_jarvis_state("OFFLINE")
+                    self._maybe_exit_fullscreen()
+                    if self._wake_engine is not None:
+                        self._wake_engine.disarm()
+
                 async for response in self.session.receive():
                     _should_sleep = False
 
@@ -2810,26 +2868,19 @@ class JarvisLive:
                                 self._last_user_speech = time.monotonic()
                                 self._session_turns += 1
 
-                                # JARVIS 6.3 — Proactive Audio: check if speech
-                                # is addressed to JARVIS. If not (TV dialogue,
-                                # someone talking to another person, phone call),
-                                # suppress the response and go back to sleep.
+                                # JARVIS 6.3 — Proactive Audio: if we're waiting
+                                # for a yes/no sleep confirmation, handle it here
+                                # instead of sending to the main session.
+                                if self._awaiting_sleep_confirm:
+                                    self._handle_sleep_response(txt)
+                                    in_buf = []
+                                    continue
+
+                                # JARVIS 6.3 — Proactive Audio: track whether ANY
+                                # partial during this turn contained an address term.
                                 if self._jarvis_state in ("LISTENING", "LOCKED"):
-                                    if not self._proactive.is_addressed(txt):
-                                        self.ui.write_log(
-                                            "SYS: Speech not addressed to JARVIS — suppressing"
-                                        )
-                                        self._proactive_suppress = True
-                                        # Interrupt any in-progress model response
-                                        self.interrupt()
-                                        # Go back to OFFLINE (sleep)
-                                        if self._wake_engine is not None:
-                                            self._wake_engine.disarm()
-                                        self._set_jarvis_state("OFFLINE")
-                                        self._maybe_exit_fullscreen()
-                                        in_buf = []
-                                        out_buf = []
-                                        continue
+                                    if self._proactive.is_addressed(txt):
+                                        self._proactive_addressed = True
 
                                 # JARVIS 6.3 — Silent language memory: detect language
                                 # from speech on first use, then persist to memory.
@@ -2863,17 +2914,32 @@ class JarvisLive:
                             if self._turn_done_event:
                                 self._turn_done_event.set()
 
-                            # If this turn_complete ends an interrupted response, clear the
-                            # flag and skip all further processing for that turn.
+                            # If this turn_complete ends an interrupted response
                             if self._interrupted:
                                 self._interrupted = False
+                                self._proactive_addressed = False
+                                self._awaiting_sleep_confirm = False
                                 in_buf  = []
                                 out_buf = []
                                 continue
 
-                            # JARVIS 6.3 — Voice emotion analysis from prosody
                             full_in = " ".join(in_buf).strip()
                             if full_in:
+                                # JARVIS 6.3 — Proactive Audio: suppress response
+                                # if speech wasn't addressed to JARVIS.
+                                if self._jarvis_state in ("LISTENING", "LOCKED"):
+                                    if not self._proactive_addressed and not self._proactive.is_addressed(full_in):
+                                        self.ui.write_log(
+                                            f"SYS: \"{full_in[:40]}\" — not for me, staying quiet"
+                                        )
+                                        self._proactive_addressed = False
+                                        in_buf = []
+                                        out_buf = []
+                                        continue
+
+                                self._proactive_addressed = False  # reset for next turn
+
+                                # JARVIS 6.3 — Voice emotion analysis from prosody
                                 self.ui.write_log(f"You: {full_in}")
                                 self._session_log.append(f"User: {full_in}")
                                 if self._dashboard:
@@ -3007,6 +3073,12 @@ class JarvisLive:
                     if _should_sleep:
                         self._set_jarvis_state("OFFLINE")
                         self.ui.write_log("SYS: Sleep command detected - going offline")
+                    else:
+                        # JARVIS 6.3 — After each addressed turn completes, ask
+                        # "May I go to sleep?" before staying silent.
+                        if (self.session and ASK_SLEEP_CONFIRMATION
+                                and self._jarvis_state in ("LISTENING", "LOCKED")):
+                            self._ask_sleep_confirmation()
         except Exception as e:
             print(f"[JARVIS] ❌ Recv: {e}")
             traceback.print_exc()

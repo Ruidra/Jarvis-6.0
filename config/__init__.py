@@ -72,6 +72,13 @@ WAKE_BOOT_DELAY: float = _cfg.get("wake_boot_delay", 0.15)
 ## word within a fraction of a second. Falls back to the model voice automatically.
 WAKE_GREETING_INSTANT: bool = _cfg.get("wake_greeting_instant", True)
 
+## ── Proactive Audio: "May I go to sleep?" confirmation ──────────────────────
+## After each turn, JARVIS asks "May I go to sleep?" and waits for yes/no.
+## Seconds to wait for the user's reply before defaulting to sleep.
+SLEEP_CONFIRM_TIMEOUT: float = _cfg.get("sleep_confirm_timeout", 15.0)
+## Set False to disable the sleep confirmation prompt entirely.
+ASK_SLEEP_CONFIRMATION: bool = _cfg.get("ask_sleep_confirmation", True)
+
 
 def get_secret(key: str, default: str | None = None) -> str | None:
     """Return a secret (e.g. an API key) with transparent encryption support.
