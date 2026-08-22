@@ -38,6 +38,7 @@ class ProsodySpeaker:
         # model + JIT-compiles), so it is created once and reused. Guarded by a
         # lock; pre-loaded in a background thread at startup (see _try_init).
         self._kokoro_player = None
+        self._kokoro_failed = False
         self._kokoro_lock = threading.Lock()
         self._try_init()
 
@@ -72,12 +73,21 @@ class ProsodySpeaker:
         Recreating the player on every call was the cause of slow wake responses:
         each greeting reloaded the model and re-ran the JIT warmup. Returns True
         once the cached player is ready.
+
+        Failure is cached too.  ``create_tts_player`` reaches the network to
+        validate the model cache, and only the success path used to be
+        remembered -- so on a machine where init fails, every single utterance
+        paid for another failed round-trip (observed 41 times in one log).
         """
         if self._kokoro_player is not None:
             return True
+        if self._kokoro_failed:
+            return False
         with self._kokoro_lock:
             if self._kokoro_player is not None:
                 return True
+            if self._kokoro_failed:
+                return False
             try:
                 from core.tts import create_tts_player
                 self._kokoro_player = create_tts_player(
@@ -85,7 +95,11 @@ class ProsodySpeaker:
                 )
                 return True
             except Exception as exc:  # noqa: BLE001 - voice is non-critical
-                logger.warning("Kokoro player init failed: %s", exc)
+                self._kokoro_failed = True
+                logger.warning(
+                    "Kokoro player init failed, falling back for the rest of "
+                    "this session: %s", exc,
+                )
                 return False
 
     @property

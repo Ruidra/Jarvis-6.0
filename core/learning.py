@@ -30,7 +30,6 @@ Example::
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import threading
@@ -38,6 +37,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from core.json_store import atomic_write_json, read_json
 from core.security import get_base_dir
 
 logger = logging.getLogger(__name__)
@@ -111,23 +111,21 @@ class Learner:
 
     # -- persistence -------------------------------------------------------- #
     def _load(self) -> dict[str, Any]:
-        try:
-            if self.store_path.exists():
-                return json.loads(self.store_path.read_text(encoding="utf-8")) or {}
-        except Exception:
-            logger.warning("learner load failed, starting fresh")
+        # read_json already logs "missing" vs "corrupt", so don't re-report it;
+        # only an unexpected top-level *type* is worth a word here.
+        data = read_json(self.store_path)
+        if isinstance(data, dict):
+            return data or {"facts": [], "corrections": [], "habits": {}, "history": []}
+        if data is not None:
+            logger.warning("learner store %s holds %s, expected an object; starting fresh",
+                           self.store_path, type(data).__name__)
         return {"facts": [], "corrections": [], "habits": {}, "history": []}
 
     def _save(self) -> None:
-        try:
-            self.store_path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = self.store_path.with_name(self.store_path.name + ".tmp")
-            tmp.write_text(json.dumps(self._data, indent=2, ensure_ascii=False),
-                           encoding="utf-8")
-            import os
-            os.replace(tmp, self.store_path)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("learner save failed: %s", exc)
+        # Shared helper, not a hand-rolled temp swap: see core/json_store.py for
+        # why a fixed ".tmp" name without retries silently drops writes.
+        if not atomic_write_json(self.store_path, self._data):
+            logger.warning("learner save failed: %s", self.store_path)
 
     # -- helpers ------------------------------------------------------------ #
     def _add_fact(self, text: str, category: str, confidence: float = 0.8,

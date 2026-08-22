@@ -26,7 +26,6 @@ Backwards-compatible dataclass ``Emotion`` is re-exported so old callers
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import time
@@ -34,6 +33,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.json_store import atomic_write_json, read_json
 from core.security import get_base_dir
 
 logger = logging.getLogger(__name__)
@@ -205,23 +205,22 @@ class _MoodJournal:
         self._data: dict[str, Any] = self._load()
 
     def _load(self) -> dict[str, Any]:
-        try:
-            if self.path.exists():
-                return json.loads(self.path.read_text(encoding="utf-8")) or {}
-        except Exception:
-            logger.warning("mood journal load failed, starting fresh")
+        # read_json already logs "missing" vs "corrupt", so don't re-report it;
+        # only an unexpected top-level *type* is worth a word here.
+        data = read_json(self.path)
+        if isinstance(data, dict):
+            return data or {"mood": "neutral", "entries": []}
+        if data is not None:
+            logger.warning("mood journal %s holds %s, expected an object; starting fresh",
+                           self.path, type(data).__name__)
         return {"mood": "neutral", "entries": []}
 
     def _save(self) -> None:
-        try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = self.path.with_name(self.path.name + ".tmp")
-            tmp.write_text(json.dumps(self._data, indent=2, ensure_ascii=False),
-                           encoding="utf-8")
-            import os
-            os.replace(tmp, self.path)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("mood journal save failed: %s", exc)
+        # Uses the shared helper rather than a hand-rolled temp-file swap: a
+        # fixed ".tmp" name with no retry loses the write with "[WinError 5]"
+        # whenever two saves overlap, which the mood journal did in practice.
+        if not atomic_write_json(self.path, self._data):
+            logger.warning("mood journal save failed: %s", self.path)
 
     @property
     def mood(self) -> str:
