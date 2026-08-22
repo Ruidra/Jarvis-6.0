@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import sqlite3
 import threading
 import time
@@ -48,6 +49,13 @@ from core.security import get_base_dir
 logger = logging.getLogger("jarvis.db")
 
 _DB_PATH = get_base_dir() / "memory" / "jarvis.db"
+
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    """Cosine similarity of two equal-length vectors (0.0 if either is zero)."""
+    dot = sum(x * y for x, y in zip(a, b))
+    norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
+    return dot / norm if norm else 0.0
 
 
 class Database:
@@ -141,34 +149,46 @@ class Database:
         results: list[dict[str, Any]] = []
 
         if query_embedding:
-            # Vector similarity search (if FAISS index available, use that;
-            # otherwise brute-force cosine in Python)
-            from core.vector_memory import vector_db
-            ids, scores = vector_db.search(query_embedding, top_k=top_k)
+            # Brute-force cosine over the embeddings stored alongside each row.
+            # Searching an external vector store instead would be wrong here:
+            # its ids are its own, and would never match this table's rowids.
+            query = """SELECT id, content, mem_type, importance, accessed_at,
+                              source, created_at, embedding
+                         FROM memories WHERE embedding IS NOT NULL"""
+            params: list = []
+            if mem_type:
+                query += " AND mem_type = ?"
+                params.append(mem_type)
+            rows = conn.execute(query, params).fetchall()
 
-            if ids:
-                placeholders = ",".join("?" * len(ids))
-                rows = conn.execute(
-                    f"""SELECT id, content, mem_type, importance, accessed_at, source, created_at
-                          FROM memories WHERE id IN ({placeholders})
-                          ORDER BY importance DESC""",
-                    list(ids),
-                ).fetchall()
-                for row, score in zip(rows, scores):
-                    results.append({
-                        "id": row[0],
-                        "content": row[1],
-                        "type": row[2],
-                        "importance": row[3],
-                        "accessed_at": row[4],
-                        "source": row[5],
-                        "created_at": row[6],
-                        "score": float(score),
-                    })
-                    # Update accessed_at
-                    conn.execute(
+            scored: list[tuple[float, tuple]] = []
+            for row in rows:
+                try:
+                    stored = json.loads(row[7])
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    continue
+                if not isinstance(stored, list) or len(stored) != len(query_embedding):
+                    continue
+                scored.append((_cosine(query_embedding, stored), row))
+
+            scored.sort(key=lambda pair: pair[0], reverse=True)
+            now = time.time()
+            for score, row in scored[:top_k]:
+                results.append({
+                    "id": row[0],
+                    "content": row[1],
+                    "type": row[2],
+                    "importance": row[3],
+                    "accessed_at": row[4],
+                    "source": row[5],
+                    "created_at": row[6],
+                    "score": float(score),
+                })
+            if results:
+                with self._lock:
+                    conn.executemany(
                         "UPDATE memories SET accessed_at = ? WHERE id = ?",
-                        (time.time(), row[0]),
+                        [(now, r["id"]) for r in results],
                     )
         elif text_query:
             pattern = f"%{text_query}%"
