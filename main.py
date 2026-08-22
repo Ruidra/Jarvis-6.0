@@ -151,6 +151,10 @@ def get_live_model() -> str:
     except Exception:
         pass
     return DEFAULT_LIVE_MODEL
+
+def _is_gemini_3_1(model: str) -> bool:
+    return "gemini-3" in model or "gemini-3.1" in model
+
 SEND_SAMPLE_RATE    = 16000
 RECEIVE_SAMPLE_RATE = 24000
 CHUNK_SIZE          = 1024
@@ -1493,10 +1497,7 @@ class JarvisLive:
         prefix = self._emotion_prefix_for_text(text)
         payload = f"{prefix}\n\n{text}" if prefix else text
         asyncio.run_coroutine_threadsafe(
-            self.session.send_client_content(
-                turns={"parts": [{"text": payload}]},
-                turn_complete=True
-            ),
+            self._send_text(payload),
             self._loop
         )
 
@@ -1759,10 +1760,7 @@ class JarvisLive:
         if not self.session or not summary:
             return
         try:
-            await self.session.send_client_content(
-                turns={"parts": [{"text": summary}]},
-                turn_complete=True,
-            )
+            await self._send_text(summary)
         except Exception as exc:
             logger.debug("context summary injection failed: %s", exc)
 
@@ -1770,12 +1768,21 @@ class JarvisLive:
         if not self._loop or not self.session:
             return
         asyncio.run_coroutine_threadsafe(
-            self.session.send_client_content(
-                turns={"parts": [{"text": text}]},
-                turn_complete=True
-            ),
+            self._send_text(text),
             self._loop
         )
+
+    async def _send_text(self, text: str) -> None:
+        if not self.session:
+            return
+        model = get_live_model()
+        if _is_gemini_3_1(model):
+            await self.session.send_realtime_input(text=text)
+        else:
+            await self.session.send_client_content(
+                turns={"parts": [{"text": text}]},
+                turn_complete=True,
+            )
 
     def speak_with_emotion(self, text: str, prosody: dict | None = None):
         """Speak with an emotion-tuned local voice when possible; else Gemini."""
@@ -2500,10 +2507,7 @@ class JarvisLive:
                 await self._save_session_summary()
                 if self.session:
                     try:
-                        await self.session.send_client_content(
-                            turns={"parts": [{"text": "Say a brief natural goodbye to the user."}]},
-                            turn_complete=True,
-                        )
+                        await self._send_text("Say a brief natural goodbye to the user.")
                     except Exception:
                         pass
                 await asyncio.sleep(1.5)
@@ -2991,10 +2995,14 @@ class JarvisLive:
     async def _receive_audio(self):
         print("[JARVIS] 👂 Recv started")
         out_buf, in_buf = [], []
+        _resp_count = 0
 
         try:
             while True:
                 async for response in self.session.receive():
+                    _resp_count += 1
+                    if _resp_count % 5 == 0:
+                        logger.info(f"[JARVIS] 📥 Received {_resp_count} responses from session")
                     _should_sleep = False
 
                     if response.data:
@@ -3003,12 +3011,15 @@ class JarvisLive:
                         else:
                             if self._turn_done_event and self._turn_done_event.is_set():
                                 self._turn_done_event.clear()
-                            # Split into ~50 ms chunks so interrupt() stops audio within 50 ms
-                            # (24000 Hz × 2 bytes/sample × 0.05 s = 2400 bytes per slice)
                             _audio_data = response.data
                             _SLICE = 2400
+                            _count = 0
                             for _i in range(0, len(_audio_data), _SLICE):
                                 self.audio_in_queue.put_nowait(_audio_data[_i : _i + _SLICE])
+                                _count += 1
+                            # Check if audio data is non-zero
+                            _nonzero = sum(1 for b in _audio_data if b != 0)
+                            logger.info(f"[JARVIS] 📥 Received {len(_audio_data)} bytes of audio ({_count} chunks, {_nonzero} non-zero bytes)")
 
                     if response.server_content:
                         sc = response.server_content
@@ -3223,14 +3234,29 @@ class JarvisLive:
 
     async def _play_audio(self):
         print("[JARVIS] 🔊 Play started")
+        logger.info("[JARVIS] 🔊 Play thread started")
 
-        stream = sd.RawOutputStream(
-            samplerate=RECEIVE_SAMPLE_RATE,
-            channels=CHANNELS,
-            dtype="int16",
-            blocksize=CHUNK_SIZE,
-        )
-        stream.start()
+        try:
+            stream = sd.RawOutputStream(
+                samplerate=RECEIVE_SAMPLE_RATE,
+                channels=CHANNELS,
+                dtype="int16",
+                blocksize=CHUNK_SIZE,
+            )
+            stream.start()
+            logger.info(f"[JARVIS] 🔊 Stream started: samplerate={RECEIVE_SAMPLE_RATE}, channels={CHANNELS}, dtype=int16")
+
+            # Play a short test tone to verify audio output is working
+            import numpy as _np
+            _test_tone = (_np.sin(2 * _np.pi * 440 * _np.arange(0, 0.3, 1/RECEIVE_SAMPLE_RATE)) * 0.2).astype(_np.float32)
+            _test_tone_int16 = (_test_tone * 32767).astype(_np.int16)
+            logger.info("[JARVIS] 🔊 Playing test tone...")
+            await asyncio.to_thread(stream.write, _test_tone_int16.tobytes())
+            await asyncio.sleep(0.5)
+            logger.info("[JARVIS] 🔊 Test tone played")
+        except Exception as e:
+            logger.info(f"[JARVIS] ❌ Stream init failed: {e}")
+            raise
 
         try:
             while True:
@@ -3250,6 +3276,8 @@ class JarvisLive:
                     continue
 
                 self.set_speaking(True)
+                _chunk_len = len(chunk)
+                _queue_size = self.audio_in_queue.qsize()
 
                 # Batch all immediately-available chunks into one write to reduce
                 # thread-pool round-trips (was one asyncio.to_thread per 50ms slice).
@@ -3261,10 +3289,12 @@ class JarvisLive:
                     except asyncio.QueueEmpty:
                         break
 
+                logger.info(f"[JARVIS] 🔊 Writing {len(batch)} bytes to stream (chunk={_chunk_len}, queue={_queue_size})")
                 try:
                     await asyncio.to_thread(stream.write, bytes(batch))
-                except (RuntimeError, asyncio.CancelledError):
-                    break   # executor shutting down — exit cleanly
+                except Exception as _write_err:
+                    logger.warning(f"[JARVIS] ⚠️ stream.write failed: {_write_err}")
+                    break
         except Exception as e:
             logger.info(f"[JARVIS] ❌ Play: {e}")
             raise
@@ -3348,10 +3378,7 @@ class JarvisLive:
         if self._turn_done_event:
             self._turn_done_event.clear()
 
-        await self.session.send_client_content(
-            turns={"parts": [{"text": p1}]},
-            turn_complete=True,
-        )
+        await self._send_text(p1)
         self.ui.write_log("SYS: Briefing phase 1 (greeting) sent.")
 
         # ── Phase 2: fire as soon as Phase 1 audio is done ───────────────────
@@ -3402,10 +3429,7 @@ class JarvisLive:
                         f"Let the user know briefly.{lang_str}"
                     )
 
-                await self.session.send_client_content(
-                    turns={"parts": [{"text": p2}]},
-                    turn_complete=True,
-                )
+                await self._send_text(p2)
                 self.ui.write_log("SYS: Briefing phase 2 (news) sent.")
             except Exception as e:
                 print(f"[Briefing] Phase 2 error: {e}")
@@ -3441,10 +3465,7 @@ class JarvisLive:
             )
             if self.session and self._turn_done_event:
                 self._turn_done_event.clear()
-                await self.session.send_client_content(
-                    turns={"parts": [{"text": prompt}]},
-                    turn_complete=True,
-                )
+                await self._send_text(prompt)
                 self.ui.write_log("SYS: Day check-in sent.")
         except Exception as e:
             print(f"[Checkin] ⚠️ {e}")
@@ -3498,10 +3519,7 @@ class JarvisLive:
             if speaking or (time.monotonic() - self._last_user_speech) < 10:
                 continue
             try:
-                await self.session.send_client_content(
-                    turns={"parts": [{"text": alert}]},
-                    turn_complete=True,
-                )
+                await self._send_text(alert)
             except Exception as e:
                 print(f"[Monitor] ⚠️ Could not send alert: {e}")
 
@@ -3542,10 +3560,7 @@ class JarvisLive:
                     "If a label suggests a task, remind them of it. Keep it brief. "
                     "Do not read the [TIMER_ALERT] tag aloud."
                 )
-                await self.session.send_client_content(
-                    turns={"parts": [{"text": msg}]},
-                    turn_complete=True,
-                )
+                await self._send_text(msg)
                 self.ui.write_log(f"SYS: Timer fired — {labels}")
             except Exception as e:
                 print(f"[Timer] ⚠️ Could not fire alert: {e}")
@@ -3573,10 +3588,7 @@ class JarvisLive:
                                 f"Inform the user about this development naturally in {lang}. "
                                 "One brief sentence only."
                             )
-                            await self.session.send_client_content(
-                                turns={"parts": [{"text": msg}]},
-                                turn_complete=True,
-                            )
+                            await self._send_text(msg)
                             self.ui.write_log("SYS: Monitor alert sent.")
                             await asyncio.sleep(6)   # gap between consecutive alerts
                     except Exception as e:
@@ -3628,10 +3640,7 @@ class JarvisLive:
                     monitors     = monitors or None,
                     recent_turns = recent_turns or None,
                 )
-                await self.session.send_client_content(
-                    turns={"parts": [{"text": prompt}]},
-                    turn_complete=True,
-                )
+                await self._send_text(prompt)
                 self.ui.write_log("SYS: Proactive check-in.")
             except Exception as e:
                 print(f"[Proactive] ⚠️ {e}")
@@ -3677,10 +3686,7 @@ class JarvisLive:
                         break
                     await asyncio.sleep(0.1)
                 if self.session:
-                    await self.session.send_client_content(
-                        turns={"parts": [{"text": text}]},
-                        turn_complete=True,
-                    )
+                    await self._send_text(text)
                     self.ui.write_log(f"[Web]: {text}")
                 else:
                     print(f"[Dashboard] Dropped command (no session): {text}")
