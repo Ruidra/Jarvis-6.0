@@ -57,6 +57,7 @@ from memory.memory_manager import (
 
 from actions.file_processor import file_processor
 from actions.flight_finder     import flight_finder
+from actions.browser_control   import browser_control
 from actions.open_app          import open_app
 from actions.weather_report    import weather_action
 from actions.send_message      import send_message
@@ -2322,6 +2323,18 @@ class JarvisLive:
         if name == "open_app":
             r = await loop.run_in_executor(None, lambda: open_app(parameters=args, response=None, player=self.ui))
             return r or f"Opened {args.get('app_name')}."
+
+        elif name == "browser_control":
+            # Declared to the model and referenced by the system prompt, but for
+            # a long time never dispatched -- so all 21 of its actions fell
+            # through to "Unknown tool: browser_control". Blocking Playwright
+            # work, hence the executor.
+            r = await loop.run_in_executor(
+                None,
+                lambda: browser_control(parameters=args, response=None,
+                                        player=self.ui, session_memory=None),
+            )
+            return r or f"Browser action '{args.get('action')}' completed."
 
         elif name == "weather_report":
             _cache_key = "weather:" + str(args.get("location") or args.get("city") or "default")
